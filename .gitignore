@@ -1,0 +1,12 @@
+node_modules/
+dist/
+logs/
+*.db
+*.db-journal
+*.db-wal
+*.db-shm
+.env
+coverage/
+
+# Artefactos locales de Claude Code (nunca se suben al repo)
+.claude/

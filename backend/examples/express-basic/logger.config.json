@@ -1,0 +1,16 @@
+{
+  "storage": {
+    "strategy": "memory",
+    "config": {
+      "max_records": 500
+    }
+  },
+  "capture": {
+    "response_body": true
+  },
+  "monitoring": {
+    "auth": {
+      "enabled": false
+    }
+  }
+}

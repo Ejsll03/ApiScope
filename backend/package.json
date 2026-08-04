@@ -1,0 +1,61 @@
+{
+  "name": "apiscope",
+  "version": "0.1.0",
+  "description": "Logging y monitoreo autoalojado para REST APIs, con middleware de captura, multiples estrategias de storage y dashboard embebido.",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.json && tsx scripts/copy-migrations.ts",
+    "dev": "tsx watch examples/express-basic/server.ts",
+    "example": "tsx examples/express-basic/server.ts",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage",
+    "gen:test": "tsx scripts/generate-test.ts",
+    "migrate": "tsx scripts/migrate.ts"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Ejsll03/ApiScope.git"
+  },
+  "keywords": [
+    "logging",
+    "monitoring",
+    "api",
+    "middleware",
+    "express",
+    "observability"
+  ],
+  "author": "",
+  "license": "MIT",
+  "type": "commonjs",
+  "engines": {
+    "node": ">=18"
+  },
+  "bugs": {
+    "url": "https://github.com/Ejsll03/ApiScope/issues"
+  },
+  "homepage": "https://github.com/Ejsll03/ApiScope#readme",
+  "dependencies": {
+    "better-sqlite3": "^13.0.2",
+    "dotenv": "^17.4.2",
+    "pg": "^8.22.0"
+  },
+  "peerDependencies": {
+    "express": ">=4"
+  },
+  "devDependencies": {
+    "@types/better-sqlite3": "^9.6.0",
+    "@types/express": "^5.0.6",
+    "@types/node": "^26.1.2",
+    "@types/pg": "^8.20.3",
+    "express": "^5.2.1",
+    "pg-mem": "^3.0.14",
+    "tsx": "^4.23.1",
+    "typescript": "^7.0.2",
+    "vitest": "^4.1.10"
+  }
+}
