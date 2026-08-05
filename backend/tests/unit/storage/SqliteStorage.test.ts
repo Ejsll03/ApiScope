@@ -174,6 +174,29 @@ describe("SqliteStorage - round-trip de datos", () => {
     expect(page.data.map((r) => r.id)).toEqual(["r1", "m1", "r2"]);
     expect(page.pagination.totalCount).toBe(3);
   });
+
+  it("getRecords aplica filtros de RF-03 (ej. method) antes de paginar", async () => {
+    const storage = await createStorage();
+    await storage.saveRequestLog(buildRequestLog({ id: "get", requestId: "get", method: "GET" }));
+    await storage.saveRequestLog(buildRequestLog({ id: "post", requestId: "post", method: "POST" }));
+
+    const page = await storage.getRecords({ method: ["POST"] });
+    expect(page.data.map((r) => r.id)).toEqual(["post"]);
+    expect(page.pagination.totalCount).toBe(1);
+  });
+});
+
+describe("SqliteStorage - getAllRequestLogs()", () => {
+  it("devuelve solo RequestLogRecord, sin paginar y sin manual_logs", async () => {
+    const storage = await createStorage();
+    await storage.saveRequestLog(buildRequestLog({ id: "r1", requestId: "r1" }));
+    await storage.saveRequestLog(buildRequestLog({ id: "r2", requestId: "r2" }));
+    await storage.saveManualLog(buildManualLog({ id: "m1" }));
+
+    const all = await storage.getAllRequestLogs();
+    expect(all.map((r) => r.id).sort()).toEqual(["r1", "r2"]);
+    expect(all.every((r) => r.type === "request")).toBe(true);
+  });
 });
 
 describe("SqliteStorage - batching de escrituras", () => {

@@ -387,22 +387,162 @@ elige según cuál esté presente, ya validado como obligatorio-uno-u-otro en
 
 ### Pendiente / fuera de alcance de esta fase
 
-- Sin verificación manual contra un Postgres real (no disponible en esta máquina) —
-  toda la cobertura automatizada corre contra pg-mem. Antes de producción, correr
-  `npm run migrate` y la demo contra un Postgres real al menos una vez.
 - Reconexión automática de `pg.Pool` ante pérdida de conexión: se apoya en el
   comportamiento default del pool (reemplaza clientes muertos bajo demanda) más el
   listener de `error` que evita que tumbe el proceso — no se agregó lógica de retry
   propia encima.
 
+### Verificación posterior contra Postgres real (Docker)
+
+Ya con Docker Desktop instalado en la máquina, se agregó `docker-compose.yml` (raíz
+del repo, servicio `postgres:16-alpine`), `backend/examples/express-basic/logger.config.postgres.json`
+y el script `npm run example:postgres` (`backend/package.json`) para levantar el demo
+contra un Postgres real en vez de pg-mem. `examples/express-basic/server.ts` ahora
+acepta el nombre del archivo de config como `process.argv[2]` y carga `.env` desde
+`backend/.env` vía `envPath`.
+
+**Puerto 5433, no 5432**: esta máquina tiene un servicio nativo de Windows
+(`postgresql-x64-17`) ya escuchando en el 5432 — el primer intento de conectar desde
+la app fallaba con `28P01` (password auth failed) porque la conexión se iba a ese
+Postgres nativo, no al contenedor. Mapear el contenedor a `5433:5432` en
+`docker-compose.yml` (y `"port": 5433` en `logger.config.postgres.json`, que es
+literal porque JSON no soporta `${VAR}` como número) lo resolvió sin tocar el
+servicio nativo. Si se vuelve a levantar en otra máquina sin ese conflicto, el
+puerto igual puede quedar en 5433 — no hay downside.
+
+Verificado end-to-end (`docker compose up -d` + `npm run example:postgres` +
+`curl`, más consultas directas con `docker exec ... psql` para confirmar que no era
+solo lectura de vuelta vía la app):
+
+- Migrations (`001_init.sql`) se aplican solas al arrancar (`auto_migrate: true`) —
+  `schema_migrations` queda con la fila `1 | init`.
+- `POST /users` con `password` en el body: `requests.request_body` y
+  `.response_body` (columnas `JSONB`) guardan `***MASKED***` en Postgres, no el
+  valor real.
+- `/boom` y `/crash`: `manual_logs` y `requests.stack_trace`/`error_message` se
+  persisten correctamente.
+- `/api/monitoring/metrics`, `/requests?has_error=true` y paginación por cursor
+  (`next_cursor` avanza, `has_more` correcto) funcionan contra el storage real, no
+  solo contra pg-mem.
+
+`backend/.env` (gitignorado) se creó localmente con los valores de
+`docker-compose.yml`/`.env.example` para poder correr `npm run example:postgres`.
+
+## Estado: Fase 4 completa ✅ — API de monitoreo (RF-03)
+
+`src/monitoring/` nuevo: `GET /metrics`, `GET /requests` (con filtros + cursor
+bidireccional real) y `GET /requests/:id`, montables via `apiscope.monitoringRouter()`
+(mismo patron que `apiscope.middleware()` -- el consumidor decide donde montarlo:
+`app.use(apiscope.config.monitoring.endpoint, apiscope.monitoringRouter())`).
+
+### `prevCursor` real: se agrego `direction` a `QueryOptions`
+
+Las fases 1/2 dejaban `prevCursor` deliberadamente `null` ("se resuelve en la fase 4").
+El PRD no especifica como se *consume* `prev_cursor` en el request (solo que la
+response debe incluirlo), asi que se diseño lo siguiente: `QueryOptions.direction`
+(`"after"` default | `"before"`) decide si `cursor` se interpreta como "seguir desde
+aca" (lo que genera `nextCursor`, anchor = ultimo item de la pagina) o "traer la
+pagina anterior a este punto" (lo que genera `prevCursor`, anchor = primer item de la
+pagina). Son simetricos: pedir `cursor: prevCursor, direction: "before"` reproduce
+exactamente la pagina anterior, con sus propios `nextCursor`/`prevCursor` identicos a
+como se vieron la primera vez -- verificado con un test de ida y vuelta en
+`pagination.test.ts` y otro end-to-end via HTTP en `router.test.ts`. A nivel HTTP,
+`direction` es un query param opcional adicional (`GET /requests?cursor=X&direction=before`);
+el PRD no lo prohibe, solo no lo menciona.
+
+### Filtros de RF-03 en `QueryOptions` + `filterLogRecords()`
+
+Se agregaron `type`, `method`, `statusCode`, `pathContains`, `from`/`to`,
+`latencyMin`/`latencyMax`, `hasError` a `QueryOptions`. La logica de filtrado vive en
+`filterLogRecords()` (`storage/pagination.ts`), llamada por las tres estrategias
+**antes** de `paginate()` -- filtrar despues de paginar habria dado `totalCount`/
+`hasMore` incorrectos (calculados sobre la tabla completa en vez del subconjunto
+filtrado). Los filtros especificos de request (method/statusCode/etc.) excluyen
+automaticamente los `ManualLogRecord` porque esos campos no existen ahi.
+`hasError` usa el mismo umbral que ya definia RF-02: `statusCode >= 400`.
+
+### `getAllRequestLogs()`: nuevo metodo en `StorageStrategy`
+
+El calculo de metricas (promedios, percentiles, top endpoints) necesita **todo** el
+conjunto de requests, no una pagina -- se agrego `getAllRequestLogs(): Promise<RequestLogRecord[]>`
+a la interface, implementado en Memory/SQLite/Postgres reutilizando cada uno su forma
+existente de leer la tabla completa. Separado de `getRecords()` a proposito: mezclar
+"traer todo" con la paginacion normal invitaria a bugs de quien olvide pasar un limit.
+
+### Snake_case en el limite HTTP (`src/monitoring/serializers.ts`)
+
+Mismo criterio que `logger.config.json` (snake_case en JSON, camelCase en TS interno),
+extendido ahora a las responses HTTP: `full_url`, `status_code`, `latency_ms`,
+`request_headers`/`response_headers`, `has_more`/`next_cursor`/`prev_cursor`/
+`total_count`, etc. — nombres elegidos para coincidir con las columnas ya usadas en los
+schemas de SQLite/Postgres (secciones 4.2/4.3), no con las tablas RF-02 (que llaman
+"headers" ambiguamente a ambos, el bug que ya se corrigio en la profundizacion de
+fase 1). El mapeo es **explicito por campo, no un transform recursivo generico**: los
+serializers no tocan las claves de `request_body`/`response_body`/`metadata`/
+`request_query` (datos opacos del consumidor) ni las de `request_headers`/
+`response_headers` (nombres reales de headers HTTP) -- un transform ciego los
+hubiera reescrito por error. Verificado con un test que a proposito usa claves
+camelCase (`userName`, `userId`) *dentro* de un body/metadata de prueba y confirma
+que sobreviven intactas.
+
+### Auth HTTP Basic (`src/monitoring/basicAuth.ts`)
+
+Comparacion de usuario/password contra SHA-256 de cada valor + `crypto.timingSafeEqual`
+(no se puede comparar strings de largo distinto directo con timing-safe compare, y
+comparar por longitud/contenido normal es vulnerable a timing attacks). Si
+`monitoring.auth.enabled` es `false`, el monitor queda de acceso publico (tal como
+especifica RF-03) -- no se implemento el formulario de login/sesion por cookie que el
+PRD ofrece como alternativa; eso se evalua en la fase 5 junto con el dashboard, que es
+donde un formulario HTML realmente tiene sentido.
+
+### Cache de metricas (`src/monitoring/metricsCache.ts`)
+
+TTL simple respetando `monitoring.cache_metrics`/`cache_duration_seconds`: el estado
+cacheado vive en el closure que crea el router (una instancia por `ApiScope`, no
+global). Si `cache_metrics` es `false`, recalcula en cada request.
+
+### Tests (TDD)
+
+36 tests nuevos, 125 en total (`npm test`):
+- `pagination.test.ts` (+13): direction/prevCursor bidireccional, `filterLogRecords`
+  (cada filtro por separado + combinados).
+- `MemoryStorage.test.ts` (4, archivo nuevo — cobertura minima acotada a esta fase,
+  el resto de MemoryStorage sigue siendo alcance de fase 6): filtros en `getRecords`,
+  `getAllRequestLogs`.
+- `SqliteStorage.test.ts`/`PostgresStorage.test.ts` (+1 c/u): filtros + `getAllRequestLogs`.
+- `monitoring/metrics.test.ts` (11): totales, buckets de status, tasa/minuto,
+  percentiles, errores por endpoint, top endpoints/mas lentos, `getSystemInfo`.
+- `monitoring/basicAuth.test.ts` (6): habilitado/deshabilitado, credenciales
+  correctas/incorrectas/ausentes/malformadas.
+- `monitoring/metricsCache.test.ts` (3): cache hit/miss/expiracion (con fake timers).
+- `monitoring/serializers.test.ts` (6): mapeo snake_case sin tocar datos opacos.
+- `monitoring/router.test.ts` (10, integracion con Express real + fetch, mismo patron
+  que `captureMiddleware.test.ts`): `monitoring.enabled`, auth, metricas, filtros,
+  navegacion adelante/atras por cursor end-to-end via HTTP, detalle de request,
+  404 para ids inexistentes o que pertenecen a un manual log.
+
+Verificado tambien a mano end-to-end contra el demo (`npm run example` +
+`curl`): password enmascarado en `/users`, error real capturado en `/boom`,
+metricas y listado con filtros funcionando en `/api/monitoring/*`.
+
+### Pendiente / fuera de alcance de esta fase
+
+- Formulario de login + sesion por cookie (alternativa a Basic Auth que ofrece el PRD)
+  queda para la fase 5, junto con el dashboard.
+- Los filtros de RF-03 se aplican en memoria (post-fetch completo de la tabla), no via
+  `WHERE` en SQL -- consistente con como ya funcionaba `getRecords()` desde la fase 1
+  (siempre trae todo y pagina en memoria), pero no es lo mas eficiente para datasets
+  grandes en SQLite/Postgres. Optimizarlo con push-down a SQL queda fuera de alcance
+  por ahora.
+- `Errores Recientes` (lista cronológica de últimos errores con detalles) es un
+  componente del dashboard (seccion "Dashboard de Métricas"), no de la API de
+  métricas -- se resuelve en fase 5 reutilizando `/requests?has_error=true`.
+
 ## Próximas fases (en orden, una por vez)
 
-1. **Fase 4 — API de monitoreo**: endpoints `/api/monitoring/metrics` y
-   `/api/monitoring/requests` (con filtros + cursor real, incluyendo `prevCursor`),
-   `/api/monitoring/requests/:id`, cache de métricas, autenticación básica.
-2. **Fase 5 — Dashboard web**: SPA embebida en un solo HTML (< 500KB), componentizada,
+1. **Fase 5 — Dashboard web**: SPA embebida en un solo HTML (< 500KB), componentizada,
    Chart.js vía CDN, tabla con filtros, vista de detalle, auto-refresh.
-3. **Fase 6 — Testing, versionado, docs, deprecación**: Vitest (cobertura ≥70% en
+2. **Fase 6 — Testing, versionado, docs, deprecación**: Vitest (cobertura ≥70% en
    storage/middleware/config/utils), Playwright Component Testing para la UI,
    CHANGELOG.md (Keep a Changelog), MIGRATION.md con una deprecación real (RF-09),
    README/CONFIGURATION/ARCHITECTURE/API.md, publicación del paquete.

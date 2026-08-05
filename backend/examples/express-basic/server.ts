@@ -3,14 +3,19 @@ import express from "express";
 import { ApiScope } from "../../src";
 
 async function main(): Promise<void> {
+  // npm run example              -> logger.config.json (memoria, default)
+  // npm run example:postgres     -> logger.config.postgres.json (requiere .env con LOGGER_DB_*)
+  const configFile = process.argv[2] ?? "logger.config.json";
   const apiscope = new ApiScope({
-    configPath: path.join(__dirname, "logger.config.json"),
+    configPath: path.join(__dirname, configFile),
+    envPath: path.resolve(__dirname, "../../.env"),
   });
   await apiscope.init();
 
   const app = express();
   app.use(express.json());
   app.use(apiscope.middleware());
+  app.use(apiscope.config.monitoring.endpoint, apiscope.monitoringRouter());
 
   app.get("/health", (_req, res) => {
     res.json({ status: "ok" });
@@ -48,6 +53,11 @@ async function main(): Promise<void> {
     console.log(`ApiScope demo escuchando en http://localhost:${port}`);
     console.log(
       "Prueba: GET /health | POST /users | GET /boom | GET /crash | GET /logs"
+    );
+    console.log(
+      `Monitor: GET ${apiscope.config.monitoring.endpoint}/metrics | ` +
+        `GET ${apiscope.config.monitoring.endpoint}/requests | ` +
+        `GET ${apiscope.config.monitoring.endpoint}/requests/:id`
     );
   });
 }

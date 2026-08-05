@@ -3,7 +3,7 @@ import fs from "node:fs";
 import path from "node:path";
 import type { PerformanceConfig, SqliteStorageConfig } from "../config/types";
 import type { HeaderMap, LogLevel, LogRecord, ManualLogRecord, RequestLogRecord } from "../types";
-import { paginate } from "./pagination";
+import { filterLogRecords, paginate } from "./pagination";
 import type { CursorPage, QueryOptions, StorageStrategy } from "./types";
 
 /**
@@ -205,7 +205,13 @@ export class SqliteStorage implements StorageStrategy {
       ...requests.map(rowToRequestLog),
       ...manualLogs.map(rowToManualLog),
     ];
-    return paginate(all, options);
+    return paginate(filterLogRecords(all, options), options);
+  }
+
+  async getAllRequestLogs(): Promise<RequestLogRecord[]> {
+    this.flush();
+    const requests = this.db.prepare("SELECT * FROM requests").all() as Record<string, unknown>[];
+    return requests.map(rowToRequestLog);
   }
 
   async getRecordById(id: string): Promise<LogRecord | null> {

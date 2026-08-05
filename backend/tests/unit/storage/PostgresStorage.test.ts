@@ -210,6 +210,29 @@ describe("PostgresStorage - round-trip de datos", () => {
     ]);
     expect(page.pagination.totalCount).toBe(3);
   });
+
+  it("getRecords aplica filtros de RF-03 (ej. method) antes de paginar", async () => {
+    const storage = await createStorage();
+    await storage.saveRequestLog(buildRequestLog({ id: UUID.r1, requestId: UUID.r1, method: "GET" }));
+    await storage.saveRequestLog(buildRequestLog({ id: UUID.r2, requestId: UUID.r2, method: "POST" }));
+
+    const page = await storage.getRecords({ method: ["POST"] });
+    expect(page.data.map((r: RequestLogRecord) => r.id)).toEqual([UUID.r2]);
+    expect(page.pagination.totalCount).toBe(1);
+  });
+});
+
+describe("PostgresStorage - getAllRequestLogs()", () => {
+  it("devuelve solo RequestLogRecord, sin paginar y sin manual_logs", async () => {
+    const storage = await createStorage();
+    await storage.saveRequestLog(buildRequestLog({ id: UUID.r1, requestId: UUID.r1 }));
+    await storage.saveRequestLog(buildRequestLog({ id: UUID.r2, requestId: UUID.r2 }));
+    await storage.saveManualLog(buildManualLog({ id: UUID.m1 }));
+
+    const all = await storage.getAllRequestLogs();
+    expect(all.map((r: RequestLogRecord) => r.id).sort()).toEqual([UUID.r1, UUID.r2].sort());
+    expect(all.every((r: RequestLogRecord) => r.type === "request")).toBe(true);
+  });
 });
 
 describe("PostgresStorage - batching de escrituras", () => {

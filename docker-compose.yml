@@ -1,0 +1,23 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: apiscope-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: apiscope
+      POSTGRES_USER: apiscope
+      POSTGRES_PASSWORD: apiscope-dev
+    ports:
+      # host 5433, no 5432: esta maquina tiene un Postgres nativo (Windows
+      # service) ya escuchando en 5432, que se comeria la conexion.
+      - "5433:5432"
+    volumes:
+      - apiscope-postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U apiscope -d apiscope"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  apiscope-postgres-data:

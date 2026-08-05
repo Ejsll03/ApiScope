@@ -39,6 +39,9 @@ function createRecordingStorage(): StorageStrategy & {
     async getRecordById() {
       return null;
     },
+    async getAllRequestLogs() {
+      return [];
+    },
     async close() {},
     waitForRecords(count: number): Promise<void> {
       if (records.length >= count) return Promise.resolve();

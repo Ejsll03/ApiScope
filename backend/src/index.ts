@@ -1,8 +1,9 @@
-import type { RequestHandler } from "express";
+import type { RequestHandler, Router } from "express";
 import { loadConfig, type LoadConfigOptions } from "./config/loadConfig";
 import type { ApiScopeConfig } from "./config/types";
 import { Logger } from "./logging/Logger";
 import { captureMiddleware } from "./middleware/captureMiddleware";
+import { createMonitoringRouter } from "./monitoring/router";
 import { createStorage } from "./storage/StorageFactory";
 import type { StorageStrategy } from "./storage/types";
 
@@ -29,6 +30,15 @@ export class ApiScope {
   /** Middleware de captura automatica de requests/responses (RF-02). Montalo con app.use(). */
   middleware(): RequestHandler {
     return captureMiddleware(this.storage, this.config.capture);
+  }
+
+  /**
+   * Router de monitoreo (RF-03): GET /metrics, GET /requests, GET
+   * /requests/:id. Montalo en `config.monitoring.endpoint`:
+   * `app.use(apiscope.config.monitoring.endpoint, apiscope.monitoringRouter())`.
+   */
+  monitoringRouter(): Router {
+    return createMonitoringRouter(this.storage, this.config.monitoring);
   }
 
   logInfo(message: string, metadata?: Record<string, unknown>): Promise<void> {

@@ -1,0 +1,21 @@
+{
+  "storage": {
+    "strategy": "postgresql",
+    "config": {
+      "host": "${LOGGER_DB_HOST}",
+      "port": 5433,
+      "database": "${LOGGER_DB_NAME}",
+      "user": "${LOGGER_DB_USER}",
+      "password": "${LOGGER_DB_PASSWORD}",
+      "auto_migrate": true
+    }
+  },
+  "capture": {
+    "response_body": true
+  },
+  "monitoring": {
+    "auth": {
+      "enabled": false
+    }
+  }
+}

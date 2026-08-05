@@ -1,6 +1,6 @@
 import type { MemoryStorageConfig } from "../config/types";
 import type { LogRecord, ManualLogRecord, RequestLogRecord } from "../types";
-import { paginate } from "./pagination";
+import { filterLogRecords, paginate } from "./pagination";
 import type { CursorPage, QueryOptions, StorageStrategy } from "./types";
 
 /**
@@ -31,11 +31,15 @@ export class MemoryStorage implements StorageStrategy {
   }
 
   async getRecords(options: QueryOptions = {}): Promise<CursorPage<LogRecord>> {
-    return paginate(this.records, options);
+    return paginate(filterLogRecords(this.records, options), options);
   }
 
   async getRecordById(id: string): Promise<LogRecord | null> {
     return this.records.find((r) => r.id === id) ?? null;
+  }
+
+  async getAllRequestLogs(): Promise<RequestLogRecord[]> {
+    return this.records.filter((r): r is RequestLogRecord => r.type === "request");
   }
 
   async close(): Promise<void> {

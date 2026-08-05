@@ -2,7 +2,7 @@ import { Pool, type PoolConfig } from "pg";
 import { runMigrations, validateConnection } from "../migrations/runMigrations";
 import type { PerformanceConfig, PostgresStorageConfig } from "../config/types";
 import type { HeaderMap, LogLevel, LogRecord, ManualLogRecord, RequestLogRecord } from "../types";
-import { paginate } from "./pagination";
+import { filterLogRecords, paginate } from "./pagination";
 import type { CursorPage, QueryOptions, StorageStrategy } from "./types";
 
 const INSERT_REQUEST_SQL = `
@@ -185,7 +185,13 @@ export class PostgresStorage implements StorageStrategy {
       ...requests.rows.map(rowToRequestLog),
       ...manualLogs.rows.map(rowToManualLog),
     ];
-    return paginate(all, options);
+    return paginate(filterLogRecords(all, options), options);
+  }
+
+  async getAllRequestLogs(): Promise<RequestLogRecord[]> {
+    await this.flush();
+    const requests = await this.pool.query("SELECT * FROM requests");
+    return requests.rows.map(rowToRequestLog);
   }
 
   async getRecordById(id: string): Promise<LogRecord | null> {
