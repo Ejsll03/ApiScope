@@ -8,13 +8,6 @@
 
 export type StorageStrategyName = "memory" | "sqlite" | "postgresql";
 
-export interface RawMemoryStorageConfig {
-  max_records?: number;
-  cleanup_enabled?: boolean;
-  cleanup_interval_minutes?: number;
-  cleanup_older_than_hours?: number;
-}
-
 export interface RawStorageSection {
   strategy: StorageStrategyName;
   config?: Record<string, unknown>;
