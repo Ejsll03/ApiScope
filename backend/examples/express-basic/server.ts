@@ -8,7 +8,7 @@ async function main(): Promise<void> {
   const configFile = process.argv[2] ?? "logger.config.json";
   const { app, apiscope } = await createDemoApp(configFile);
 
-  const port = 3000;
+  const port = Number(process.env.PORT) || 3000;
   app.listen(port, () => {
     console.log(`ApiScope demo escuchando en http://localhost:${port}`);
     console.log(
