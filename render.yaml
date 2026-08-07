@@ -10,6 +10,3 @@ services:
       cd ../backend && pnpm install --frozen-lockfile --prod=false
     startCommand: cd backend && pnpm run start
     healthCheckPath: /health
-    envVars:
-      - key: NODE_VERSION
-        value: 20.18.0
