@@ -24,7 +24,8 @@
     "test:coverage": "vitest run --coverage",
     "gen:test": "tsx scripts/generate-test.ts",
     "migrate": "tsx scripts/migrate.ts",
-    "prepublishOnly": "pnpm test && pnpm run build"
+    "build:dashboard": "cd ../frontend && npm install && npm run build",
+    "prepublishOnly": "pnpm run build:dashboard && pnpm test && pnpm run build"
   },
   "repository": {
     "type": "git",
