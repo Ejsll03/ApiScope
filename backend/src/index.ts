@@ -17,7 +17,10 @@ export class ApiScope {
   constructor(options: LoadConfigOptions = {}) {
     this.config = loadConfig(options);
     this.storage = createStorage(this.config.storage, this.config.performance);
-    this.logger = new Logger(this.storage);
+    this.logger = new Logger(this.storage, {
+      maskSensitiveData: this.config.capture.maskSensitiveData,
+      sensitiveBodyFields: this.config.capture.sensitiveBodyFields,
+    });
   }
 
   /** Inicializa el storage (crea tablas, arranca timers de limpieza, etc). */
