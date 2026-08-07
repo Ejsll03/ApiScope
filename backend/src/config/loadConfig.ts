@@ -7,6 +7,7 @@ import {
   DEFAULT_MONITORING_CONFIG,
   DEFAULT_PERFORMANCE_CONFIG,
   DEFAULT_POSTGRES_STORAGE_CONFIG,
+  DEFAULT_RETENTION_CONFIG,
   DEFAULT_SQLITE_STORAGE_CONFIG,
 } from "./defaults";
 import { resolveEnvVars } from "./resolveEnvVars";
@@ -53,6 +54,7 @@ export function loadConfig(options: LoadConfigOptions = {}): ApiScopeConfig {
         auth: { ...DEFAULT_MONITORING_CONFIG.auth },
       },
       performance: { ...DEFAULT_PERFORMANCE_CONFIG },
+      retention: { ...DEFAULT_RETENTION_CONFIG },
     };
   }
 
@@ -96,34 +98,55 @@ function buildConfig(
     capture,
     monitoring: buildMonitoringConfig(raw),
     performance: buildPerformanceConfig(raw),
+    retention: buildRetentionConfig(raw),
   };
 }
+
+const CONNECTION_STRING_PATTERN = /^postgres(ql)?:\/\//;
 
 function buildStorageConfig(raw: RawStorageSection): StorageConfig {
   const cfg = raw.config ?? {};
 
   switch (raw.strategy) {
-    case "memory":
+    case "memory": {
+      const maxRecords = requireNumber(
+        cfg.max_records,
+        "storage.config.max_records",
+        DEFAULT_MEMORY_STORAGE_CONFIG.maxRecords
+      );
+      requireRange(maxRecords, "storage.config.max_records", 1);
+
+      const cleanupIntervalMinutes = requireNumber(
+        cfg.cleanup_interval_minutes,
+        "storage.config.cleanup_interval_minutes",
+        DEFAULT_MEMORY_STORAGE_CONFIG.cleanupIntervalMinutes
+      );
+      requireRange(cleanupIntervalMinutes, "storage.config.cleanup_interval_minutes", 1);
+
+      const cleanupOlderThanHours = requireNumber(
+        cfg.cleanup_older_than_hours,
+        "storage.config.cleanup_older_than_hours",
+        DEFAULT_MEMORY_STORAGE_CONFIG.cleanupOlderThanHours
+      );
+      requireRange(cleanupOlderThanHours, "storage.config.cleanup_older_than_hours", 1);
+
       return {
         strategy: "memory",
-        maxRecords: numberOr(cfg.max_records, DEFAULT_MEMORY_STORAGE_CONFIG.maxRecords),
-        cleanupEnabled: boolOr(
+        maxRecords,
+        cleanupEnabled: requireBoolean(
           cfg.cleanup_enabled,
+          "storage.config.cleanup_enabled",
           DEFAULT_MEMORY_STORAGE_CONFIG.cleanupEnabled
         ),
-        cleanupIntervalMinutes: numberOr(
-          cfg.cleanup_interval_minutes,
-          DEFAULT_MEMORY_STORAGE_CONFIG.cleanupIntervalMinutes
-        ),
-        cleanupOlderThanHours: numberOr(
-          cfg.cleanup_older_than_hours,
-          DEFAULT_MEMORY_STORAGE_CONFIG.cleanupOlderThanHours
-        ),
+        cleanupIntervalMinutes,
+        cleanupOlderThanHours,
       };
+    }
 
     case "sqlite": {
-      const databasePath = stringOr(
+      const databasePath = requireString(
         cfg.database_path,
+        "storage.config.database_path",
         DEFAULT_SQLITE_STORAGE_CONFIG.databasePath
       );
       if (databasePath.trim() === "") {
@@ -134,18 +157,27 @@ function buildStorageConfig(raw: RawStorageSection): StorageConfig {
       return {
         strategy: "sqlite",
         databasePath,
-        autoVacuum: boolOr(cfg.auto_vacuum, DEFAULT_SQLITE_STORAGE_CONFIG.autoVacuum),
-        journalMode: journalModeOr(
+        autoVacuum: requireBoolean(
+          cfg.auto_vacuum,
+          "storage.config.auto_vacuum",
+          DEFAULT_SQLITE_STORAGE_CONFIG.autoVacuum
+        ),
+        journalMode: requireEnum(
           cfg.journal_mode,
+          "storage.config.journal_mode",
+          ["DELETE", "WAL", "MEMORY"] as const,
           DEFAULT_SQLITE_STORAGE_CONFIG.journalMode
         ),
       };
     }
 
     case "postgresql": {
-      const connectionString = stringOrUndefined(cfg.connection_string);
-      const database = stringOrUndefined(cfg.database);
-      const user = stringOrUndefined(cfg.user);
+      const connectionString = requireStringOrUndefined(
+        cfg.connection_string,
+        "storage.config.connection_string"
+      );
+      const database = requireStringOrUndefined(cfg.database, "storage.config.database");
+      const user = requireStringOrUndefined(cfg.user, "storage.config.user");
 
       if (!connectionString && !(database && user)) {
         throw new ConfigValidationError(
@@ -153,20 +185,48 @@ function buildStorageConfig(raw: RawStorageSection): StorageConfig {
             `o al menos "database" y "user" (Opcion B, seccion RF-06).`
         );
       }
+      if (connectionString && !CONNECTION_STRING_PATTERN.test(connectionString)) {
+        throw new ConfigValidationError(
+          `storage.config.connection_string debe empezar con "postgresql://" o "postgres://" ` +
+            `(recibido: ${JSON.stringify(connectionString)}).`
+        );
+      }
+
+      const port = requireNumber(
+        cfg.port,
+        "storage.config.port",
+        DEFAULT_POSTGRES_STORAGE_CONFIG.port
+      );
+      requireRange(port, "storage.config.port", 1, 65535);
+
+      const poolSize = requireNumber(
+        cfg.pool_size,
+        "storage.config.pool_size",
+        DEFAULT_POSTGRES_STORAGE_CONFIG.poolSize
+      );
+      requireRange(poolSize, "storage.config.pool_size", 1);
+
+      const timeoutMs = requireNumber(
+        cfg.timeout_ms,
+        "storage.config.timeout_ms",
+        DEFAULT_POSTGRES_STORAGE_CONFIG.timeoutMs
+      );
+      requireRange(timeoutMs, "storage.config.timeout_ms", 1);
 
       return {
         strategy: "postgresql",
         connectionString,
-        host: stringOr(cfg.host, DEFAULT_POSTGRES_STORAGE_CONFIG.host),
-        port: numberOr(cfg.port, DEFAULT_POSTGRES_STORAGE_CONFIG.port),
+        host: requireString(cfg.host, "storage.config.host", DEFAULT_POSTGRES_STORAGE_CONFIG.host),
+        port,
         database,
         user,
-        password: stringOrUndefined(cfg.password),
-        poolSize: numberOr(cfg.pool_size, DEFAULT_POSTGRES_STORAGE_CONFIG.poolSize),
-        timeoutMs: numberOr(cfg.timeout_ms, DEFAULT_POSTGRES_STORAGE_CONFIG.timeoutMs),
-        ssl: boolOr(cfg.ssl, DEFAULT_POSTGRES_STORAGE_CONFIG.ssl),
-        autoMigrate: boolOr(
+        password: requireStringOrUndefined(cfg.password, "storage.config.password"),
+        poolSize,
+        timeoutMs,
+        ssl: requireBoolean(cfg.ssl, "storage.config.ssl", DEFAULT_POSTGRES_STORAGE_CONFIG.ssl),
+        autoMigrate: requireBoolean(
           cfg.auto_migrate,
+          "storage.config.auto_migrate",
           DEFAULT_POSTGRES_STORAGE_CONFIG.autoMigrate
         ),
       };
@@ -183,21 +243,60 @@ function buildStorageConfig(raw: RawStorageSection): StorageConfig {
 
 function mapCaptureSection(raw: RawApiScopeConfig) {
   const c = raw.capture ?? {};
+  const d = DEFAULT_CAPTURE_CONFIG;
   return {
-    ...(c.request_headers !== undefined && { requestHeaders: c.request_headers }),
-    ...(c.request_body !== undefined && { requestBody: c.request_body }),
-    ...(c.request_query !== undefined && { requestQuery: c.request_query }),
-    ...(c.response_headers !== undefined && { responseHeaders: c.response_headers }),
-    ...(c.response_body !== undefined && { responseBody: c.response_body }),
-    ...(c.max_body_size_kb !== undefined && { maxBodySizeKb: c.max_body_size_kb }),
-    ...(c.excluded_paths !== undefined && { excludedPaths: c.excluded_paths }),
-    ...(c.excluded_methods !== undefined && { excludedMethods: c.excluded_methods }),
-    ...(c.sensitive_headers !== undefined && { sensitiveHeaders: c.sensitive_headers }),
+    ...(c.request_headers !== undefined && {
+      requestHeaders: requireBoolean(c.request_headers, "capture.request_headers", d.requestHeaders),
+    }),
+    ...(c.request_body !== undefined && {
+      requestBody: requireBoolean(c.request_body, "capture.request_body", d.requestBody),
+    }),
+    ...(c.request_query !== undefined && {
+      requestQuery: requireBoolean(c.request_query, "capture.request_query", d.requestQuery),
+    }),
+    ...(c.response_headers !== undefined && {
+      responseHeaders: requireBoolean(
+        c.response_headers,
+        "capture.response_headers",
+        d.responseHeaders
+      ),
+    }),
+    ...(c.response_body !== undefined && {
+      responseBody: requireBoolean(c.response_body, "capture.response_body", d.responseBody),
+    }),
+    ...(c.max_body_size_kb !== undefined && {
+      maxBodySizeKb: requireNumber(c.max_body_size_kb, "capture.max_body_size_kb", d.maxBodySizeKb),
+    }),
+    ...(c.excluded_paths !== undefined && {
+      excludedPaths: requireStringArray(c.excluded_paths, "capture.excluded_paths", d.excludedPaths),
+    }),
+    ...(c.excluded_methods !== undefined && {
+      excludedMethods: requireStringArray(
+        c.excluded_methods,
+        "capture.excluded_methods",
+        d.excludedMethods
+      ),
+    }),
+    ...(c.sensitive_headers !== undefined && {
+      sensitiveHeaders: requireStringArray(
+        c.sensitive_headers,
+        "capture.sensitive_headers",
+        d.sensitiveHeaders
+      ),
+    }),
     ...(c.sensitive_body_fields !== undefined && {
-      sensitiveBodyFields: c.sensitive_body_fields,
+      sensitiveBodyFields: requireStringArray(
+        c.sensitive_body_fields,
+        "capture.sensitive_body_fields",
+        d.sensitiveBodyFields
+      ),
     }),
     ...(c.mask_sensitive_data !== undefined && {
-      maskSensitiveData: c.mask_sensitive_data,
+      maskSensitiveData: requireBoolean(
+        c.mask_sensitive_data,
+        "capture.mask_sensitive_data",
+        d.maskSensitiveData
+      ),
     }),
   };
 }
@@ -205,16 +304,21 @@ function mapCaptureSection(raw: RawApiScopeConfig) {
 function buildMonitoringConfig(raw: RawApiScopeConfig) {
   const m = raw.monitoring ?? {};
   const authRaw = m.auth ?? {};
+  const d = DEFAULT_MONITORING_CONFIG;
+
+  const sessionTimeoutHours = requireNumber(
+    authRaw.session_timeout_hours,
+    "monitoring.auth.session_timeout_hours",
+    d.auth.sessionTimeoutHours
+  );
+  requireRange(sessionTimeoutHours, "monitoring.auth.session_timeout_hours", 1);
 
   const auth = {
-    enabled: boolOr(authRaw.enabled, DEFAULT_MONITORING_CONFIG.auth.enabled),
-    type: "basic" as const,
-    username: authRaw.username ?? DEFAULT_MONITORING_CONFIG.auth.username,
-    password: authRaw.password ?? DEFAULT_MONITORING_CONFIG.auth.password,
-    sessionTimeoutHours: numberOr(
-      authRaw.session_timeout_hours,
-      DEFAULT_MONITORING_CONFIG.auth.sessionTimeoutHours
-    ),
+    enabled: requireBoolean(authRaw.enabled, "monitoring.auth.enabled", d.auth.enabled),
+    type: requireEnum(authRaw.type, "monitoring.auth.type", ["basic"] as const, "basic"),
+    username: authRaw.username ?? d.auth.username,
+    password: authRaw.password ?? d.auth.password,
+    sessionTimeoutHours,
   };
 
   if (auth.enabled && (!auth.username || !auth.password)) {
@@ -223,8 +327,8 @@ function buildMonitoringConfig(raw: RawApiScopeConfig) {
     );
   }
 
-  const pageSize = numberOr(m.page_size, DEFAULT_MONITORING_CONFIG.pageSize);
-  const maxPageSize = numberOr(m.max_page_size, DEFAULT_MONITORING_CONFIG.maxPageSize);
+  const pageSize = requireNumber(m.page_size, "monitoring.page_size", d.pageSize);
+  const maxPageSize = requireNumber(m.max_page_size, "monitoring.max_page_size", d.maxPageSize);
 
   if (pageSize > maxPageSize) {
     throw new ConfigValidationError(
@@ -232,49 +336,59 @@ function buildMonitoringConfig(raw: RawApiScopeConfig) {
     );
   }
 
+  const endpoint = requireString(m.endpoint, "monitoring.endpoint", d.endpoint);
+  if (!endpoint.startsWith("/")) {
+    throw new ConfigValidationError(
+      `monitoring.endpoint debe empezar con "/" (recibido: ${JSON.stringify(endpoint)}).`
+    );
+  }
+
+  const cacheDurationSeconds = requireNumber(
+    m.cache_duration_seconds,
+    "monitoring.cache_duration_seconds",
+    d.cacheDurationSeconds
+  );
+  requireRange(cacheDurationSeconds, "monitoring.cache_duration_seconds", 0);
+
+  const autoRefreshInterval = requireNumber(
+    m.auto_refresh_interval,
+    "monitoring.auto_refresh_interval",
+    d.autoRefreshInterval
+  );
+  requireRange(autoRefreshInterval, "monitoring.auto_refresh_interval", 5, 300);
+
   return {
-    endpoint: stringOr(m.endpoint, DEFAULT_MONITORING_CONFIG.endpoint),
-    enabled: boolOr(m.enabled, DEFAULT_MONITORING_CONFIG.enabled),
-    cacheMetrics: boolOr(m.cache_metrics, DEFAULT_MONITORING_CONFIG.cacheMetrics),
-    cacheDurationSeconds: numberOr(
-      m.cache_duration_seconds,
-      DEFAULT_MONITORING_CONFIG.cacheDurationSeconds
-    ),
+    endpoint,
+    enabled: requireBoolean(m.enabled, "monitoring.enabled", d.enabled),
+    cacheMetrics: requireBoolean(m.cache_metrics, "monitoring.cache_metrics", d.cacheMetrics),
+    cacheDurationSeconds,
     pageSize,
     maxPageSize,
-    autoRefreshInterval: numberOr(
-      m.auto_refresh_interval,
-      DEFAULT_MONITORING_CONFIG.autoRefreshInterval
-    ),
+    autoRefreshInterval,
     auth,
   };
 }
 
 function buildPerformanceConfig(raw: RawApiScopeConfig) {
   const p = raw.performance ?? {};
+  const d = DEFAULT_PERFORMANCE_CONFIG;
 
-  const batchSize = numberOr(p.batch_size, DEFAULT_PERFORMANCE_CONFIG.batchSize);
-  const batchIntervalMs = numberOr(
+  const batchSize = requireNumber(p.batch_size, "performance.batch_size", d.batchSize);
+  const batchIntervalMs = requireNumber(
     p.batch_interval_ms,
-    DEFAULT_PERFORMANCE_CONFIG.batchIntervalMs
+    "performance.batch_interval_ms",
+    d.batchIntervalMs
   );
-  const maxQueueSize = numberOr(p.max_queue_size, DEFAULT_PERFORMANCE_CONFIG.maxQueueSize);
+  const maxQueueSize = requireNumber(
+    p.max_queue_size,
+    "performance.max_queue_size",
+    d.maxQueueSize
+  );
 
-  if (batchSize <= 0) {
-    throw new ConfigValidationError(
-      `performance.batch_size debe ser mayor a 0 (recibido: ${batchSize}).`
-    );
-  }
-  if (batchIntervalMs <= 0) {
-    throw new ConfigValidationError(
-      `performance.batch_interval_ms debe ser mayor a 0 (recibido: ${batchIntervalMs}).`
-    );
-  }
-  if (maxQueueSize <= 0) {
-    throw new ConfigValidationError(
-      `performance.max_queue_size debe ser mayor a 0 (recibido: ${maxQueueSize}).`
-    );
-  }
+  requireRange(batchSize, "performance.batch_size", 1);
+  requireRange(batchIntervalMs, "performance.batch_interval_ms", 1);
+  requireRange(maxQueueSize, "performance.max_queue_size", 1);
+
   if (batchSize > maxQueueSize) {
     throw new ConfigValidationError(
       `performance.batch_size (${batchSize}) no puede ser mayor que performance.max_queue_size (${maxQueueSize}).`
@@ -282,34 +396,134 @@ function buildPerformanceConfig(raw: RawApiScopeConfig) {
   }
 
   return {
-    asyncLogging: boolOr(p.async_logging, DEFAULT_PERFORMANCE_CONFIG.asyncLogging),
+    asyncLogging: requireBoolean(p.async_logging, "performance.async_logging", d.asyncLogging),
     batchSize,
     batchIntervalMs,
     maxQueueSize,
   };
 }
 
-function numberOr(value: unknown, fallback: number): number {
-  return typeof value === "number" ? value : fallback;
+function buildRetentionConfig(raw: RawApiScopeConfig) {
+  const r = raw.retention ?? {};
+  const d = DEFAULT_RETENTION_CONFIG;
+
+  const maxRecords = requireNumber(r.max_records, "retention.max_records", d.maxRecords);
+  requireRange(maxRecords, "retention.max_records", 1);
+
+  const cleanupIntervalMinutes = requireNumber(
+    r.cleanup_interval_minutes,
+    "retention.cleanup_interval_minutes",
+    d.cleanupIntervalMinutes
+  );
+  requireRange(cleanupIntervalMinutes, "retention.cleanup_interval_minutes", 1);
+
+  const cleanupOlderThanDays = requireNumber(
+    r.cleanup_older_than_days,
+    "retention.cleanup_older_than_days",
+    d.cleanupOlderThanDays
+  );
+  requireRange(cleanupOlderThanDays, "retention.cleanup_older_than_days", 1);
+
+  const archiveBeforeDelete = requireBoolean(
+    r.archive_before_delete,
+    "retention.archive_before_delete",
+    d.archiveBeforeDelete
+  );
+  const archivePath = r.archive_path ?? d.archivePath;
+
+  if (archiveBeforeDelete && !archivePath) {
+    throw new ConfigValidationError(
+      `retention.archive_before_delete es true pero falta "archive_path".`
+    );
+  }
+
+  return {
+    enabled: requireBoolean(r.enabled, "retention.enabled", d.enabled),
+    maxRecords,
+    cleanupIntervalMinutes,
+    cleanupOlderThanDays,
+    archiveBeforeDelete,
+    archivePath,
+  };
 }
 
-function boolOr(value: unknown, fallback: boolean): boolean {
-  return typeof value === "boolean" ? value : fallback;
+/**
+ * Distingue "campo ausente" (usa el default) de "campo presente con tipo
+ * incorrecto" (falla al arranque, RF-06). Una vez que el JSON trae un valor
+ * para el campo, se exige que tenga el tipo correcto -- ya no se cae en
+ * silencio al default.
+ */
+function requireNumber(value: unknown, fieldPath: string, fallback: number): number {
+  if (value === undefined) return fallback;
+  if (typeof value !== "number" || Number.isNaN(value)) {
+    throw new ConfigValidationError(
+      `${fieldPath} debe ser un numero (recibido: ${JSON.stringify(value)}).`
+    );
+  }
+  return value;
 }
 
-function stringOr(value: unknown, fallback: string): string {
-  return typeof value === "string" ? value : fallback;
+function requireBoolean(value: unknown, fieldPath: string, fallback: boolean): boolean {
+  if (value === undefined) return fallback;
+  if (typeof value !== "boolean") {
+    throw new ConfigValidationError(
+      `${fieldPath} debe ser boolean (recibido: ${JSON.stringify(value)}).`
+    );
+  }
+  return value;
 }
 
-function stringOrUndefined(value: unknown): string | undefined {
-  return typeof value === "string" ? value : undefined;
+function requireString(value: unknown, fieldPath: string, fallback: string): string {
+  if (value === undefined) return fallback;
+  if (typeof value !== "string") {
+    throw new ConfigValidationError(
+      `${fieldPath} debe ser un string (recibido: ${JSON.stringify(value)}).`
+    );
+  }
+  return value;
 }
 
-function journalModeOr(
+function requireStringOrUndefined(value: unknown, fieldPath: string): string | undefined {
+  if (value === undefined) return undefined;
+  if (typeof value !== "string") {
+    throw new ConfigValidationError(
+      `${fieldPath} debe ser un string (recibido: ${JSON.stringify(value)}).`
+    );
+  }
+  return value;
+}
+
+function requireStringArray(value: unknown, fieldPath: string, fallback: string[]): string[] {
+  if (value === undefined) return fallback;
+  if (!Array.isArray(value) || !value.every((item) => typeof item === "string")) {
+    throw new ConfigValidationError(
+      `${fieldPath} debe ser un array de strings (recibido: ${JSON.stringify(value)}).`
+    );
+  }
+  return value;
+}
+
+function requireEnum<T extends string>(
   value: unknown,
-  fallback: "DELETE" | "WAL" | "MEMORY"
-): "DELETE" | "WAL" | "MEMORY" {
-  return value === "DELETE" || value === "WAL" || value === "MEMORY"
-    ? value
-    : fallback;
+  fieldPath: string,
+  allowed: readonly T[],
+  fallback: T
+): T {
+  if (value === undefined) return fallback;
+  if (!allowed.includes(value as T)) {
+    throw new ConfigValidationError(
+      `${fieldPath} debe ser uno de [${allowed.join(", ")}] (recibido: ${JSON.stringify(value)}).`
+    );
+  }
+  return value as T;
+}
+
+function requireRange(value: number, fieldPath: string, min: number, max?: number): void {
+  if (value < min || (max !== undefined && value > max)) {
+    throw new ConfigValidationError(
+      `${fieldPath} debe estar entre ${min} y ${
+        max ?? "sin limite"
+      } (recibido: ${value}).`
+    );
+  }
 }

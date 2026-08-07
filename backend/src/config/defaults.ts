@@ -4,6 +4,7 @@ import type {
   MonitoringConfig,
   PerformanceConfig,
   PostgresStorageConfig,
+  RetentionConfig,
   SqliteStorageConfig,
 } from "./types";
 
@@ -65,4 +66,13 @@ export const DEFAULT_PERFORMANCE_CONFIG: PerformanceConfig = {
   batchSize: 50,
   batchIntervalMs: 1000,
   maxQueueSize: 1000,
+};
+
+export const DEFAULT_RETENTION_CONFIG: RetentionConfig = {
+  enabled: false,
+  maxRecords: 10000,
+  cleanupIntervalMinutes: 30,
+  cleanupOlderThanDays: 7,
+  archiveBeforeDelete: false,
+  archivePath: null,
 };

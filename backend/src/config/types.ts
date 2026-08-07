@@ -54,12 +54,22 @@ export interface RawPerformanceSection {
   max_queue_size?: number;
 }
 
+export interface RawRetentionSection {
+  enabled?: boolean;
+  max_records?: number;
+  cleanup_interval_minutes?: number;
+  cleanup_older_than_days?: number;
+  archive_before_delete?: boolean;
+  archive_path?: string | null;
+}
+
 /** Shape completo del archivo logger.config.json, tal como lo escribe el usuario. */
 export interface RawApiScopeConfig {
   storage: RawStorageSection;
   capture?: RawCaptureSection;
   monitoring?: RawMonitoringSection;
   performance?: RawPerformanceSection;
+  retention?: RawRetentionSection;
 }
 
 // ---- Config resuelta (con defaults aplicados) ----
@@ -147,9 +157,24 @@ export interface PerformanceConfig {
   maxQueueSize: number;
 }
 
+/**
+ * Politica de retencion/limpieza (RF-06, seccion Retention). Por ahora solo
+ * se parsea/valida aca -- ningun storage lee todavia este campo para borrar
+ * registros viejos (ver PROGRESS.md, pendiente de una fase posterior).
+ */
+export interface RetentionConfig {
+  enabled: boolean;
+  maxRecords: number;
+  cleanupIntervalMinutes: number;
+  cleanupOlderThanDays: number;
+  archiveBeforeDelete: boolean;
+  archivePath: string | null;
+}
+
 export interface ApiScopeConfig {
   storage: StorageConfig;
   capture: CaptureConfig;
   monitoring: MonitoringConfig;
   performance: PerformanceConfig;
+  retention: RetentionConfig;
 }
