@@ -45,7 +45,17 @@ pnpm run example:all
 
 ## Uso como paquete del proyecto
 
-El consumo esperado del paquete sigue esta forma:
+Se publica en **GitHub Packages** (no en npmjs.com), que exige autenticación
+incluso para instalar un paquete público. Antes del `npm install`, agregá a
+`.npmrc` (del proyecto o `~/.npmrc` global):
+
+```ini
+@ejsll03:registry=https://npm.pkg.github.com
+//npm.pkg.github.com/:_authToken=TU_TOKEN_AQUI
+```
+
+El token es un [Personal Access Token](https://github.com/settings/tokens)
+de GitHub con permiso `read:packages`. Recién ahí:
 
 ```bash
 npm install @ejsll03/apiscope

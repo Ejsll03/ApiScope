@@ -7,6 +7,21 @@ monitoreo embebido, sin depender de ningún servicio cloud externo.
 
 ## Instalación
 
+Este paquete se publica en **GitHub Packages**, no en el registro público de
+npmjs.com. GitHub Packages exige autenticación incluso para instalar un
+paquete público, así que hacen falta dos pasos antes del `npm install`:
+
+1. Generá un [Personal Access Token](https://github.com/settings/tokens) de
+   GitHub con permiso `read:packages` (alcanza con eso para instalar).
+2. En tu proyecto (o en `~/.npmrc` global), agregá:
+
+   ```ini
+   @ejsll03:registry=https://npm.pkg.github.com
+   //npm.pkg.github.com/:_authToken=TU_TOKEN_AQUI
+   ```
+
+Recién ahí:
+
 ```bash
 npm install @ejsll03/apiscope
 ```
