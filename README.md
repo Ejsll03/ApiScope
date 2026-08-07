@@ -7,7 +7,7 @@ requests.
 
 ## Qué incluye este repositorio
 
-- `backend/`: el paquete Node.js + TypeScript del repositorio, con nombre `apiscope`.
+- `backend/`: el paquete Node.js + TypeScript del repositorio, publicado como `@ejsll03/apiscope`.
 - `frontend/`: la SPA embebida que genera el panel de monitoreo.
 - `requerimientos-logger.md`: la especificación funcional del proyecto.
 - `CHANGELOG.md`, `MIGRATION.md`, `CONFIGURATION.md`, `ARCHITECTURE.md`,
@@ -39,6 +39,15 @@ pnpm run example:sqlite
 pnpm run example:postgres
 pnpm run example:all
 ```
+
+## Demo en vivo
+
+[![Deploy to Render](https://render.com/images/deploy-to-render-button.svg)](https://render.com/deploy?repo=https://github.com/Ejsll03/ApiScope)
+
+`render.yaml` en la raíz describe el servicio (build del frontend + backend,
+storage en memoria, sin auth) para un deploy con un clic en
+[Render](https://render.com). El plan gratuito duerme tras 15 min de
+inactividad y tarda unos segundos en despertar en el próximo request.
 
 ## Documentación
 

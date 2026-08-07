@@ -48,12 +48,12 @@ pnpm run example:all
 El consumo esperado del paquete sigue esta forma:
 
 ```bash
-npm install apiscope
+npm install @ejsll03/apiscope
 ```
 
 ```ts
 import express from "express";
-import { ApiScope } from "apiscope";
+import { ApiScope } from "@ejsll03/apiscope";
 
 const app = express();
 const apiscope = new ApiScope();

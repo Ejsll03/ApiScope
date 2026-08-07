@@ -1,9 +1,12 @@
 {
-  "name": "apiscope",
+  "name": "@ejsll03/apiscope",
   "version": "0.1.0",
   "description": "Logging y monitoreo autoalojado para REST APIs, con middleware de captura, multiples estrategias de storage y dashboard embebido.",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
+  "publishConfig": {
+    "access": "public"
+  },
   "files": [
     "dist",
     "dashboard"
@@ -11,6 +14,7 @@
   "scripts": {
     "build": "tsc -p tsconfig.json && tsx scripts/copy-migrations.ts",
     "dev": "tsx watch examples/express-basic/server.ts",
+    "start": "tsx examples/express-basic/server.ts",
     "example": "tsx examples/express-basic/server.ts",
     "example:sqlite": "tsx examples/express-basic/server.ts logger.config.sqlite.json",
     "example:postgres": "tsx examples/express-basic/server.ts logger.config.postgres.json",
@@ -19,7 +23,8 @@
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
     "gen:test": "tsx scripts/generate-test.ts",
-    "migrate": "tsx scripts/migrate.ts"
+    "migrate": "tsx scripts/migrate.ts",
+    "prepublishOnly": "pnpm test && pnpm run build"
   },
   "repository": {
     "type": "git",
@@ -33,7 +38,7 @@
     "express",
     "observability"
   ],
-  "author": "",
+  "author": "Ejsll03",
   "license": "MIT",
   "type": "commonjs",
   "engines": {

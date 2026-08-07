@@ -1,0 +1,15 @@
+services:
+  - type: web
+    name: apiscope-demo
+    runtime: node
+    plan: free
+    branch: Dev
+    buildCommand: >-
+      corepack enable && corepack prepare pnpm@11.11.0 --activate &&
+      cd frontend && npm install && npm run build &&
+      cd ../backend && pnpm install --frozen-lockfile --prod=false
+    startCommand: cd backend && pnpm run start
+    healthCheckPath: /health
+    envVars:
+      - key: NODE_VERSION
+        value: 20.18.0
