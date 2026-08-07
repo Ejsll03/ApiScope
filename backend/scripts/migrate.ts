@@ -11,8 +11,8 @@ import { buildPoolConfig } from "../src/storage/PostgresStorage";
  * la app, no algo que corra solo en cada arranque.
  *
  * Uso:
- *   npm run migrate
- *   npm run migrate -- --config ./otra-carpeta/logger.config.json --env ./otra-carpeta/.env
+ *   pnpm run migrate
+ *   pnpm run migrate -- --config ./otra-carpeta/logger.config.json --env ./otra-carpeta/.env
  */
 function parseArgs(argv: string[]): { configPath?: string; envPath?: string } {
   const result: { configPath?: string; envPath?: string } = {};

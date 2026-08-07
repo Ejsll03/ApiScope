@@ -4,15 +4,15 @@ import path from "node:path";
 /**
  * Genera una plantilla de test de Vitest en tests/unit/, reflejando la
  * misma ruta relativa que el archivo fuente tiene dentro de src/.
- * Uso: npm run gen:test -- src/utils/timestamp
+ * Uso: pnpm run gen:test -- src/utils/timestamp
  * (crea tests/unit/utils/timestamp.test.ts)
  */
 function main(): void {
   const arg = process.argv[2];
 
   if (!arg) {
-    console.error("Uso: npm run gen:test -- <ruta/dentro/de/src, sin extension>");
-    console.error("Ejemplo: npm run gen:test -- src/utils/timestamp");
+    console.error("Uso: pnpm run gen:test -- <ruta/dentro/de/src, sin extension>");
+    console.error("Ejemplo: pnpm run gen:test -- src/utils/timestamp");
     process.exit(1);
   }
 

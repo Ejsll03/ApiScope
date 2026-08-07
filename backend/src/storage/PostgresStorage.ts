@@ -130,7 +130,7 @@ export function buildPoolConfig(config: PostgresStorageConfig): PoolConfig {
  *
  * A diferencia de SqliteStorage, el schema NO se crea automaticamente salvo
  * que `storage.config.auto_migrate` sea true (RF-06) -- en produccion se
- * espera correr las migrations a mano con `npm run migrate` (ver
+ * espera correr las migrations a mano con `pnpm run migrate` (ver
  * scripts/migrate.ts) antes de levantar la app.
  */
 export class PostgresStorage implements StorageStrategy {

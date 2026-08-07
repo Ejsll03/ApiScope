@@ -36,6 +36,7 @@
   "engines": {
     "node": ">=18"
   },
+  "packageManager": "pnpm@11.11.0",
   "bugs": {
     "url": "https://github.com/Ejsll03/ApiScope/issues"
   },

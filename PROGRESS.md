@@ -17,8 +17,8 @@ diga este documento) y para separar backend/frontend en el mismo repo:
 - **Estructura del repo**: todo lo que antes vivía en la raíz (`src/`,
   `examples/`, `package.json`, `tsconfig.json`, etc.) ahora vive en
   `backend/`. Se creó `frontend/` (por ahora solo un `README.md`) reservada
-  para la fase 5 (dashboard). Todos los comandos (`npm run build`,
-  `npm run example`, `npm test`) se corren **desde `backend/`**.
+  para la fase 5 (dashboard). Todos los comandos (`pnpm run build`,
+  `pnpm run example`, `pnpm test`) se corren **desde `backend/`**.
 - **`capture.sensitive_body_fields` (nuevo campo de config)**: antes,
   `src/utils/mask.ts` tenía hardcodeado qué campos de body se enmascaran
   siempre (`password`, `passwd`, `secret`, `token`). CLAUDE.md exige que
@@ -108,7 +108,7 @@ backend/
     server.ts                     # demo funcional: /health /users /boom /crash /logs
     logger.config.json
   scripts/
-    generate-test.ts              # npm run gen:test -- src/... : scaffolding de tests
+    generate-test.ts              # pnpm run gen:test -- src/... : scaffolding de tests
   vitest.config.mts
 
 frontend/
@@ -155,15 +155,15 @@ Todos los comandos se corren parados dentro de `backend/`:
 
 ```
 cd backend
-npm run example
+pnpm run example
 # GET  /health
 # POST /users   (body con "password" se enmascara automático)
 # GET  /boom    (demuestra logError manual)
 # GET  /crash   (demuestra captura automática de error real vía res.locals.apiScopeError)
 # GET  /logs    (dump crudo de todo lo que guardó MemoryStorage)
 
-npm test              # corre la suite de Vitest (50 tests, ver "Fase 2" mas abajo)
-npm run test:watch    # modo watch
+pnpm test              # corre la suite de Vitest (50 tests, ver "Fase 2" mas abajo)
+pnpm run test:watch    # modo watch
 ```
 
 ### Pendiente dentro de la fase 1 (menor, no bloqueante)
@@ -205,7 +205,7 @@ Para generar la plantilla de un test nuevo en la ubicación correcta:
 
 ```
 cd backend
-npm run gen:test -- src/utils/timestamp
+pnpm run gen:test -- src/utils/timestamp
 # crea tests/unit/utils/timestamp.test.ts con un describe/it.todo de arranque
 # y el import relativo ya resuelto hacia src/utils/timestamp
 ```
@@ -260,7 +260,7 @@ sabe ni le importa cuál de las dos está detrás.
 
 ### Tests (TDD, igual que en la profundización de fase 1)
 
-25 tests nuevos, 50 en total (`npm test`):
+25 tests nuevos, 50 en total (`pnpm test`):
 - `tests/unit/storage/pagination.test.ts` (8): orden asc/desc, clamp de `limit`,
   `hasMore`/`nextCursor`, avance por cursor, `prevCursor` siempre `null`.
 - `tests/unit/storage/SqliteStorage.test.ts` (11): creación de schema/índices,
@@ -344,11 +344,11 @@ tocar este código):
     `captureMiddleware.ts` la calcula con `process.hrtime.bigint()` redondeada a 2
     decimales (sub-milisegundo), así que un `INTEGER` truncaría precisión real.
 
-### CLI de migrations manual (`backend/scripts/migrate.ts` → `npm run migrate`)
+### CLI de migrations manual (`backend/scripts/migrate.ts` → `pnpm run migrate`)
 
 RF-04.3 pide un comando para correr migrations a mano, independiente de
 `storage.config.auto_migrate` (que por default es `false` — en producción se espera
-correr `npm run migrate` como paso deliberado antes de levantar la app, no que la app
+correr `pnpm run migrate` como paso deliberado antes de levantar la app, no que la app
 las aplique sola en cada arranque). Soporta `--config`/`--env` para apuntar a otro
 `logger.config.json`/`.env`. Falla con mensaje claro y exit code 1 si la conexión no
 funciona o si `storage.strategy` no es `"postgresql"`.
@@ -359,8 +359,8 @@ funciona o si `storage.strategy` no es `"postgresql"`.
 `001_init.sql`, y `runMigrations()` (que busca sus migrations en `__dirname` por
 default) no encontraba ninguna en el paquete publicado, sin tirar error, aplicando el
 schema vacío en silencio. Se agregó `backend/scripts/copy-migrations.ts` y quedó
-encadenado en `npm run build` (`tsc -p tsconfig.json && tsx scripts/copy-migrations.ts`).
-Verificado manualmente: `dist/migrations/001_init.sql` existe después de `npm run build`.
+encadenado en `pnpm run build` (`tsc -p tsconfig.json && tsx scripts/copy-migrations.ts`).
+Verificado manualmente: `dist/migrations/001_init.sql` existe después de `pnpm run build`.
 
 ### `PostgresStorage.ts`: mismo patrón de batching que SQLite, adaptado a `pg`
 
@@ -376,7 +376,7 @@ elige según cuál esté presente, ya validado como obligatorio-uno-u-otro en
 
 ### Tests (TDD)
 
-18 tests nuevos, 68 en total (`npm test`):
+18 tests nuevos, 68 en total (`pnpm test`):
 - `tests/unit/migrations/runMigrations.test.ts` (5): orden de aplicación, no repetir
   migrations ya registradas, aplicar solo las nuevas, `MigrationError` + sin registro
   de versión cuando el SQL es inválido, validación de conexión antes de arrancar.
@@ -396,7 +396,7 @@ elige según cuál esté presente, ya validado como obligatorio-uno-u-otro en
 
 Ya con Docker Desktop instalado en la máquina, se agregó `docker-compose.yml` (raíz
 del repo, servicio `postgres:16-alpine`), `backend/examples/express-basic/logger.config.postgres.json`
-y el script `npm run example:postgres` (`backend/package.json`) para levantar el demo
+y el script `pnpm run example:postgres` (`backend/package.json`) para levantar el demo
 contra un Postgres real en vez de pg-mem. `examples/express-basic/server.ts` ahora
 acepta el nombre del archivo de config como `process.argv[2]` y carga `.env` desde
 `backend/.env` vía `envPath`.
@@ -410,7 +410,7 @@ literal porque JSON no soporta `${VAR}` como número) lo resolvió sin tocar el
 servicio nativo. Si se vuelve a levantar en otra máquina sin ese conflicto, el
 puerto igual puede quedar en 5433 — no hay downside.
 
-Verificado end-to-end (`docker compose up -d` + `npm run example:postgres` +
+Verificado end-to-end (`docker compose up -d` + `pnpm run example:postgres` +
 `curl`, más consultas directas con `docker exec ... psql` para confirmar que no era
 solo lectura de vuelta vía la app):
 
@@ -426,7 +426,7 @@ solo lectura de vuelta vía la app):
   solo contra pg-mem.
 
 `backend/.env` (gitignorado) se creó localmente con los valores de
-`docker-compose.yml`/`.env.example` para poder correr `npm run example:postgres`.
+`docker-compose.yml`/`.env.example` para poder correr `pnpm run example:postgres`.
 
 ## Estado: Fase 4 completa ✅ — API de monitoreo (RF-03)
 
@@ -503,7 +503,7 @@ global). Si `cache_metrics` es `false`, recalcula en cada request.
 
 ### Tests (TDD)
 
-36 tests nuevos, 125 en total (`npm test`):
+36 tests nuevos, 125 en total (`pnpm test`):
 - `pagination.test.ts` (+13): direction/prevCursor bidireccional, `filterLogRecords`
   (cada filtro por separado + combinados).
 - `MemoryStorage.test.ts` (4, archivo nuevo — cobertura minima acotada a esta fase,
@@ -521,7 +521,7 @@ global). Si `cache_metrics` es `false`, recalcula en cada request.
   navegacion adelante/atras por cursor end-to-end via HTTP, detalle de request,
   404 para ids inexistentes o que pertenecen a un manual log.
 
-Verificado tambien a mano end-to-end contra el demo (`npm run example` +
+Verificado tambien a mano end-to-end contra el demo (`pnpm run example` +
 `curl`): password enmascarado en `/users`, error real capturado en `/boom`,
 metricas y listado con filtros funcionando en `/api/monitoring/*`.
 
@@ -537,6 +537,94 @@ metricas y listado con filtros funcionando en `/api/monitoring/*`.
 - `Errores Recientes` (lista cronológica de últimos errores con detalles) es un
   componente del dashboard (seccion "Dashboard de Métricas"), no de la API de
   métricas -- se resuelve en fase 5 reutilizando `/requests?has_error=true`.
+
+## Cierre de gaps de RF-06 — validación de `logger.config.json`
+
+Revisión completa del backend contra `requerimientos-logger.md` (fases 1-4 confirmadas
+sólidas). Se eligió cerrar primero los gaps concretos de RF-06 en
+`backend/src/config/loadConfig.ts`, verificados leyendo el código real:
+
+- **Tipos de datos ahora se validan de verdad**: antes, `numberOr`/`boolOr`/`stringOr`
+  caían al default en silencio si el JSON traía un tipo incorrecto (ej.
+  `"max_records": "5000"` no tronaba, usaba `5000` sin avisar). Se reemplazaron por
+  `requireNumber`/`requireBoolean`/`requireString`/`requireStringArray`/`requireEnum`
+  (todas al final de `loadConfig.ts`), que distinguen "campo ausente" (usa el default)
+  de "campo presente con tipo incorrecto" (`ConfigValidationError` con el fieldPath y
+  el valor recibido). Aplica también a los 4 arrays de `capture`
+  (`excluded_paths`/`excluded_methods`/`sensitive_headers`/`sensitive_body_fields`).
+- **Rangos nuevos**: `storage.config.port` (1-65535), `pool_size`/`timeout_ms`
+  (postgres), `max_records`/`cleanup_interval_minutes`/`cleanup_older_than_hours`
+  (memory), `monitoring.auto_refresh_interval` (5-300, tal como dice el PRD: "Desde 5
+  segundos hasta 5 minutos"), `monitoring.auth.session_timeout_hours` (≥1),
+  `monitoring.cache_duration_seconds` (≥0) — todos vía el helper `requireRange`.
+- **Enums reales**: `journal_mode` inválido ahora falla al arranque (antes caía al
+  default en silencio); `monitoring.auth.type` ya no está hardcodeado a `"basic"` —
+  se valida contra `["basic"]` con `requireEnum` (sigue siendo el único tipo soportado
+  por RF-03, pero ahora un valor distinto avisa en vez de ignorarse).
+- **Formato**: `storage.config.connection_string` debe matchear
+  `/^postgres(ql)?:\/\//`; `monitoring.endpoint` debe empezar con `/`.
+- **Sección `retention` nueva** (antes no existía en absoluto en `RawApiScopeConfig`):
+  se agregó `RawRetentionSection`/`RetentionConfig` (`config/types.ts`),
+  `DEFAULT_RETENTION_CONFIG` (`config/defaults.ts`) y `buildRetentionConfig()`
+  (`loadConfig.ts`), con la misma dependencia cruzada que ya existía para
+  `auth.username`↔`password`: `archive_before_delete: true` sin `archive_path` falla.
+  **Deliberadamente fuera de alcance**: la lógica de limpieza automática que lea esta
+  sección y borre registros viejos de `SqliteStorage`/`PostgresStorage` — sigue
+  pendiente (ver nota de "Retention" en la fase 2 más arriba). Por ahora `retention`
+  solo se parsea, valida y expone en `ApiScopeConfig`, ningún storage la lee todavía.
+
+**Tests**: 25 casos nuevos en `tests/unit/config/loadConfig.test.ts` (tipo incorrecto,
+rango inválido, enum inválido, formato inválido, retention con sus defaults/custom/
+dependencia, y un caso "camino feliz" que toca todos los campos nuevos a la vez) — TDD,
+escritos antes de tocar `loadConfig.ts`. Suite completa: **148 tests, todos en verde**
+(antes 125). Verificado también que `examples/express-basic/logger.config.json` (el que
+usa `pnpm run example`) sigue cargando sin romperse con las validaciones más estrictas.
+
+**Nota de entorno (superada, ver migración a pnpm más abajo)**: en esta máquina, con
+`npm`, `npm install` normal fallaba compilando `better-sqlite3` desde código fuente
+(node-gyp buscaba Visual Studio Build Tools, no instalados) porque Node subió a
+v24.18.0 y no había binario prebuilt para esa versión todavía. `npm install
+--ignore-scripts` lo resolvía como workaround. Con la migración a pnpm (ver más abajo)
+esto dejó de ser un problema: `better-sqlite3` subió de `13.0.2` a `13.0.3`, que ya
+trae un prebuild real para `win32-x64` (`node_modules/.pnpm/better-sqlite3@13.0.3/
+node_modules/better-sqlite3/prebuilds/win32-x64.node`), sin depender de compilar nada.
+
+## Migración de npm a pnpm
+
+A pedido del usuario, el gestor de paquetes del backend pasó de `npm` a `pnpm`
+(`pnpm --version` → `11.11.0` en esta máquina). Cambios:
+
+- Se borraron `backend/node_modules` y `backend/package-lock.json`; `pnpm install`
+  generó `backend/pnpm-lock.yaml` (nuevo archivo a commitear en vez del lockfile de npm).
+- **pnpm 10+ bloquea scripts de instalación (`postinstall`) por default** (protección
+  de supply-chain: un `pnpm install` normal ya no ejecuta código arbitrario de
+  dependencias sin permiso explícito). El proyecto necesita que corran los de
+  `better-sqlite3` (compila/selecciona el binario nativo de SQLite) y `esbuild`
+  (binario nativo que usa Vitest para transformar TS). En vez de aprobarlos
+  interactivamente con `pnpm approve-builds` (que exigiría un paso manual por
+  desarrollador, y rompería RF-01 -- "instalación con un único comando"), se declararon
+  de forma reproducible en `backend/pnpm-workspace.yaml`:
+  ```yaml
+  allowBuilds:
+    better-sqlite3: true
+    esbuild: true
+  onlyBuiltDependencies:
+    - better-sqlite3
+    - esbuild
+  ```
+  Con esto, `pnpm install` a secas (sin flags) ya construye lo necesario y deja el
+  resto de las dependencies sin ejecutar scripts, que es el comportamiento seguro por
+  default que pnpm 10+ busca.
+- Todos los comandos del proyecto pasan a usar `pnpm run <script>` (o `pnpm test`, que
+  al igual que en npm no necesita `run`) en vez de `npm run <script>`/`npm test`.
+  Referencias actualizadas en comentarios de código
+  (`examples/express-basic/server.ts`, `scripts/generate-test.ts`,
+  `scripts/migrate.ts`, `src/storage/PostgresStorage.ts`) y en este documento.
+- Verificado: `pnpm install` limpio + `pnpm exec vitest run` → **148/148 tests en
+  verde** (incluyendo `SqliteStorage`, que depende del binario nativo), y `pnpm exec
+  tsc --noEmit` sin errores. `pnpm run test:coverage` sigue fallando porque falta
+  instalar `@vitest/coverage-v8` -- gap preexistente de RF-07, no relacionado con la
+  migración (ver fase 6 pendiente).
 
 ## Próximas fases (en orden, una por vez)
 

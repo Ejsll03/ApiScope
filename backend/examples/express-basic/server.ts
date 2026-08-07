@@ -3,8 +3,8 @@ import express from "express";
 import { ApiScope } from "../../src";
 
 async function main(): Promise<void> {
-  // npm run example              -> logger.config.json (memoria, default)
-  // npm run example:postgres     -> logger.config.postgres.json (requiere .env con LOGGER_DB_*)
+  // pnpm run example              -> logger.config.json (memoria, default)
+  // pnpm run example:postgres     -> logger.config.postgres.json (requiere .env con LOGGER_DB_*)
   const configFile = process.argv[2] ?? "logger.config.json";
   const apiscope = new ApiScope({
     configPath: path.join(__dirname, configFile),
