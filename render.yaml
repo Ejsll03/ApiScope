@@ -10,3 +10,9 @@ services:
       cd ../backend && pnpm install --frozen-lockfile --prod=false
     startCommand: cd backend && pnpm run start
     healthCheckPath: /health
+    envVars:
+      # pnpm@11.11.0 (backend/package.json) requiere Node >= 22.13 -- sin
+      # pin, el default de Render cayo en 20.18.0 y el install crasheaba
+      # (ERR_UNKNOWN_BUILTIN_MODULE) antes de llegar a nuestro buildCommand.
+      - key: NODE_VERSION
+        value: 22.13.0
