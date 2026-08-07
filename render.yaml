@@ -5,7 +5,7 @@ services:
     plan: free
     branch: Dev
     buildCommand: >-
-      corepack enable && corepack prepare pnpm@11.11.0 --activate &&
+      npm install -g pnpm@11.11.0 &&
       cd frontend && npm install && npm run build &&
       cd ../backend && pnpm install --frozen-lockfile --prod=false
     startCommand: cd backend && pnpm run start
