@@ -119,6 +119,13 @@ O bien:
 }
 ```
 
+`sensitive_body_fields` y `mask_sensitive_data` no solo aplican al body de
+request/response capturado por el middleware: también se usan para
+enmascarar `metadata` en los logs manuales (`logInfo`, `logWarning`,
+`logError`, `logDebug`). Si le pasás datos de un body como metadata (por
+ejemplo `apiscope.logInfo("Creando usuario", { body: req.body })`), los
+campos listados aquí se enmascaran igual que en la captura automática.
+
 ## Monitoreo
 
 ```json

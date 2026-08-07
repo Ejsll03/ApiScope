@@ -44,8 +44,12 @@ export function createMonitoringRouter(storage: StorageStrategy, monitoring: Mon
     next();
   });
 
-  router.use(basicAuthMiddleware(monitoring.auth));
-
+  // GET / (la SPA) queda fuera del gate de Basic Auth a proposito: el
+  // login custom de la app (frontend/src/auth) necesita que el HTML cargue
+  // siempre para poder detectar un 401 de /metrics via JS y mostrar su
+  // propio LoginForm. Si "/" tambien exigiera credenciales, el navegador
+  // dispararia su dialogo nativo de Basic Auth antes de que React llegue a
+  // montar, y el LoginForm de la app nunca se veria.
   router.get("/", (_req, res) => {
     const html = readDashboardHtml();
     if (html === null) {
@@ -59,6 +63,8 @@ export function createMonitoringRouter(storage: StorageStrategy, monitoring: Mon
     }
     res.type("html").send(html);
   });
+
+  router.use(basicAuthMiddleware(monitoring.auth));
 
   router.get("/metrics", async (_req, res) => {
     const snapshot = await getMetrics();

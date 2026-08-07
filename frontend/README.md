@@ -38,7 +38,9 @@ src/
   auth/                    # AuthGate, LoginForm, useAuth (Basic Auth + sesion en localStorage)
   router/useHashRoute.js   # router minimo por hash (#/dashboard, #/requests, #/requests/:id)
   layout/                  # AppShell, NavBar
-  dashboard/               # DashboardPage + cada card/grafico/tabla del dashboard
+  dashboard/               # DashboardPage.jsx: un solo componente que arma el
+                            # dashboard reutilizando StatTile/LineChart/RankedTable
+                            # de common/ (no hay sub-componentes por card/grafico)
   requests/                # RequestsPage, FiltersBar, RequestsTable, CursorPagination
   detail/                  # RequestDetailPage, JsonViewer
   hooks/                   # useMetrics, useRequests, useRequestDetail, useRecentErrors
@@ -71,6 +73,29 @@ requests", asi que se agrego un filtro `type` opcional y aditivo al backend
 (`request` default / `manual` / `all`) — el default no cambia, pero la pestaña
 "Logs manuales" / "Todos" en `FiltersBar` ahora puede pedirlos. El detalle
 (`GET /requests/:id`) tambien se extendio para servir ambos tipos.
+
+## Diseño y motion
+
+`src/styles/tokens.css` centraliza la paleta (light/dark, con dark en un
+tono slate azulado en vez de gris/negro plano), la tipografía (Inter, vía
+Google Fonts en `index.html`) y los tokens de motion:
+
+- `--ease-out` / `--ease-in-out` para curvas.
+- `--duration-fast` (120ms, feedback puntual como press/hover),
+  `--duration-base` (180ms, transiciones de contenido) y `--duration-slow`
+  (320ms, dibujos de datos como barras/charts).
+
+`src/styles/global.css` trae utilidades compartidas: `.fade-in` (entrada
+estandar), `.pressable` (feedback de `:active` para elementos clickeados con
+frecuencia -- tabs, chips, filas, botones de paginación) y un bloque
+`@media (prefers-reduced-motion: reduce)` que apaga desplazamiento/escala/loop
+conservando el feedback de opacidad y color. Los spinners de carga
+(`Spinner`, skeleton shimmer) quedan exceptuados a propósito: son la única
+señal de "esto está cargando" que tiene la UI.
+
+Al agregar una transición o animación nueva, usar los tokens de duración
+existentes en vez de un valor hardcodeado, y si mueve o escala algo,
+agregar el caso correspondiente al bloque de `prefers-reduced-motion`.
 
 ## Desarrollo
 

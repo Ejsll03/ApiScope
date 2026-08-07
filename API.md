@@ -8,8 +8,23 @@ configurable mediante `monitoring.endpoint`.
 
 ## Autenticación
 
-Si `monitoring.auth.enabled` es `true`, el router usa HTTP Basic Auth.
-Las requests sin credenciales válidas retornan `401`.
+Si `monitoring.auth.enabled` es `true`, el router usa HTTP Basic Auth en
+`GET /metrics`, `GET /requests` y `GET /requests/:id`. Las requests sin
+credenciales válidas retornan `401`.
+
+`GET /api/monitoring` (el HTML de la SPA) queda **fuera** de ese gate a
+propósito: la SPA implementa su propio formulario de login (no depende del
+diálogo nativo de Basic Auth del navegador), y si el HTML también exigiera
+credenciales, el navegador dispararía ese diálogo nativo antes de que React
+llegue a montar.
+
+El header `WWW-Authenticate` de la respuesta `401` solo se envía a clientes
+que **no** manden `Sec-Fetch-Mode` (curl, Postman, scripts) -- es el mismo
+motivo: un navegador (o cualquier cliente `fetch` que siga el spec, Node
+incluido) intercepta un `401 + WWW-Authenticate: Basic` a nivel de red y
+puede colgar el request esperando su propio diálogo de credenciales. Un
+cliente API que sí necesita el desafío completo (RFC 7235) lo sigue
+recibiendo con normalidad.
 
 ## `GET /api/monitoring`
 
@@ -142,6 +157,11 @@ Los registros de request se serializan con snake_case en la frontera HTTP:
 - `stack_trace`
 - `metadata`
 - `context`
+
+`metadata` se enmascara con la misma lista `capture.sensitive_body_fields`
+(ver [CONFIGURATION.md](CONFIGURATION.md)) antes de guardarse -- si le pasás
+datos de un body (`logInfo("...", { body: req.body })`), los campos
+sensibles no quedan en texto plano.
 
 ## Superficie del middleware
 

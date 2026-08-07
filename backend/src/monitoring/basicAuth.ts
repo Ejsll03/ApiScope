@@ -31,8 +31,23 @@ function timingSafeEqualStr(a: string, b: string): boolean {
   return crypto.timingSafeEqual(bufA, bufB);
 }
 
-function challenge(res: Response): void {
-  res.set("WWW-Authenticate", REALM);
+/**
+ * Chrome (y otros navegadores) interceptan cualquier 401 con
+ * `WWW-Authenticate: Basic` a nivel de red -- incluso en `fetch()`/XHR, no
+ * solo en navegacion -- e intentan mostrar su propio dialogo nativo de
+ * credenciales. La SPA de ApiScope (`frontend/src/auth`) implementa su
+ * propio `LoginForm` y nunca depende de ese dialogo nativo: si el header
+ * viaja igual, el `fetch()` de `useAuth.js` queda colgado esperando un
+ * dialogo que en headless nunca aparece y en un navegador real tapa el
+ * LoginForm de la app. Los navegadores mandan `Sec-Fetch-Mode` en todo
+ * fetch/XHR (Fetch Metadata Request Headers); curl/Postman/clientes API no
+ * lo mandan, asi que sirve para mandar el desafio RFC 7235 completo solo a
+ * quien realmente lo necesita.
+ */
+function challenge(req: Request, res: Response): void {
+  if (!req.get("sec-fetch-mode")) {
+    res.set("WWW-Authenticate", REALM);
+  }
   res.status(401).json({ error: "unauthorized" });
 }
 
@@ -57,7 +72,7 @@ export function basicAuthMiddleware(auth: MonitoringAuthConfig): RequestHandler 
       !timingSafeEqualStr(credentials.user, auth.username ?? "") ||
       !timingSafeEqualStr(credentials.pass, auth.password ?? "")
     ) {
-      challenge(res);
+      challenge(req, res);
       return;
     }
 

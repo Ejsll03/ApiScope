@@ -55,6 +55,9 @@ defecto y valida la forma final.
 ### `src/logging/Logger.ts`
 
 API de logging manual (`logInfo`, `logWarning`, `logError`, `logDebug`).
+Enmascara `metadata` con la misma lista `capture.sensitive_body_fields` que
+usa el middleware de captura, así un log manual que reciba datos de un body
+no filtra passwords u otros campos sensibles en texto plano.
 
 ### `src/utils/`
 
@@ -81,6 +84,10 @@ La elección de compilación es intencional:
 - un artefacto distribuible para la interfaz de monitoreo;
 - sin dependencia en tiempo de ejecución de assets de CDN;
 - despliegue simple en el consumidor del paquete.
+
+El sistema visual vive en `frontend/src/styles/tokens.css` (paleta light/dark,
+tipografía Inter, tokens de duración/easing) y `global.css` (utilidades
+compartidas de animación, incluido `prefers-reduced-motion`).
 
 ## Decisiones de diseño
 

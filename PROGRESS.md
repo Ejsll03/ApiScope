@@ -719,14 +719,18 @@ forma serializada; se sumo un test nuevo para `type=manual`/`type=all`.
 - **Router (`src/router/useHashRoute.js`)**: hash-router minimo escrito a mano
   (`#/dashboard`, `#/requests`, `#/requests/:id`) en vez de `react-router`, para
   no sumar peso al bundle en una SPA de tres vistas.
-- **Dashboard (`src/dashboard/`)**: `SummaryCards` (con animacion count-up),
-  `MethodDistributionChart` (barras, un solo hue), `StatusDistributionChart`
-  (una barra apilada 2xx/3xx/4xx/5xx con colores de severidad),
-  `TimelineChart`/`LatencyChart` (line chart SVG compartido con crosshair +
-  tooltip), `TopEndpointsTable`/`SlowestEndpointsTable` (envoltorios finos sobre
-  `common/RankedTable`), `RecentErrorsList` (reutiliza
-  `/requests?has_error=true`), `AutoRefreshControl` (5s-5min, pausable, pulso en
-  vivo).
+- **Dashboard (`src/dashboard/DashboardPage/DashboardPage.jsx`)**: **corregido
+  en la sesión de continuación** -- ver "Correcciones posteriores" más abajo,
+  este archivo nunca llegó a commitearse en la fase 5 original pese a que esta
+  sección ya lo daba por hecho. Es un único componente (no los archivos
+  separados `SummaryCards`/`MethodDistributionChart`/`AutoRefreshControl` que
+  esta sección describía antes) que arma el dashboard reutilizando
+  directamente los componentes genéricos de `common/`: `StatTile` (con
+  count-up) para el resumen, `LineChart` para Timeline/Performance,
+  `RankedTable` para distribución por método/status + top endpoints +
+  endpoints lentos, y una tabla propia para Errores Recientes
+  (`useRecentErrors`). El control de pausa/reanudar auto-refresh vive inline
+  en el propio componente, no como un `AutoRefreshControl` separado.
 - **Requests (`src/requests/`)**: `FiltersBar` (debounce 400ms; pestañas
   Requests/Logs manuales/Todos; oculta los filtros propios de requests --
   method/status/latencia/has_error -- en la pestaña de manuales porque
@@ -777,6 +781,127 @@ numero si volves a esta seccion mucho despues.
   el mismo `intervalSeconds`, pero son dos requests HTTP independientes (no
   hay un endpoint combinado) -- aceptable a esta escala, revisar si se vuelve
   un problema de throughput real.
+
+## Correcciones y mejoras posteriores a la fase 5 (sesión de continuación)
+
+### 🐛 Bug real encontrado y arreglado: `DashboardPage.jsx` nunca se pudo commitear
+
+Al probar el paquete de punta a punta (`pnpm run example` + `npm run build` en
+`frontend/`), el build de Vite fallaba: `App.jsx` importaba
+`./dashboard/DashboardPage/DashboardPage.jsx`, pero ese archivo no existía en
+el repo -- ni siquiera en el commit que la sección de fase 5 de este mismo
+documento ya daba por completo. Causa raíz: el `.gitignore` de la raíz tenía
+`dashboard/` (línea 3) **sin ancla** -- pensado para ignorar solo
+`backend/dashboard/` (el build output que sirve el backend), pero al no tener
+`/` inicial también matcheaba `frontend/src/dashboard/` completo. Cualquier
+`git add` sobre esa carpeta se descartaba en silencio, sin error visible, en
+cualquier sesión anterior que haya intentado commitearla. Fix:
+`dashboard/` → `/backend/dashboard/` en `.gitignore`. Se reconstruyó
+`DashboardPage.jsx`/`.css` reutilizando los componentes de `common/` ya
+existentes (`StatTile`, `LineChart`, `RankedTable`, `Card`) -- ver la nota
+corregida en "Componentes principales" de la fase 5, más arriba.
+
+### 🐛 Bug real encontrado y arreglado: `password` en texto plano en logs manuales (RNF-05)
+
+Probando `POST /users` del ejemplo (que llama
+`apiscope.logInfo("Creando usuario", { body: req.body })`), el
+`request_body` capturado automáticamente por el middleware mostraba
+`password: "***MASKED***"` como se espera, pero el log manual correspondiente
+(mismo password, vía `metadata.body.password`) lo guardaba **en texto
+plano**. `Logger.write()` persistía `metadata` tal cual, sin pasar por
+`maskBody()` como sí hace `captureMiddleware`. RNF-05 pide "No almacenar
+passwords en request bodies" de forma general, no solo en la ruta de captura
+automática. Fix: `Logger` ahora recibe `{ maskSensitiveData,
+sensitiveBodyFields }` en el constructor (poblado desde `config.capture` en
+`src/index.ts`) y enmascara `metadata` con la misma `maskBody()` que ya usaba
+el middleware. 4 tests nuevos en `tests/unit/logging/Logger.test.ts`
+(primer test del `Logger`, que no tenía ninguno) -- suite completa en
+**157 tests, todos en verde**.
+
+### Rediseño visual + sistema de motion del dashboard
+
+A pedido explícito, se usó la skill `ui-ux-pro-max` para una dirección de
+diseño (paleta, tipografía, tokens) y la skill `improve-animations` para
+auditar el motion existente antes de tocar código:
+
+- **Tipografía**: Inter (single-family, cargada vía Google Fonts en
+  `index.html`) reemplaza el stack `system-ui` genérico.
+- **Dark mode**: paleta slate azulada (`#0a0e17`/`#0f1729`/`#172136`, bordes
+  `#263652`) en `tokens.css`, en vez del gris/negro plano anterior. Light
+  mode no se tocó (ya estaba limpio).
+- **Tokens de duración nuevos**: `--duration-fast/base/slow` (120/180/320ms)
+  + `--ease-in-out`, reemplazando ~15 valores hardcodeados duplicados en 8
+  archivos CSS distintos.
+- **Bug de performance/UX arreglado**: `LineChart` (Timeline/Performance del
+  dashboard) rejugaba el trazado completo de 900ms en **cada auto-refresh**
+  (cada 30s por default) en vez de solo al montar -- con el dashboard
+  abierto, los gráficos se "borraban y redibujaban" indefinidamente. Fix:
+  `useLayoutEffect` ahora solo dispara el draw-in la primera vez
+  (`hasDrawnOnce` ref); actualizaciones posteriores muestran la forma nueva
+  sin el barrido.
+- **Bug de performance arreglado**: `RankedTable` animaba `width` (dispara
+  layout) en la barra mini de las 4 tablas rankeadas; ahora anima
+  `transform: scaleX()`.
+- **`prefers-reduced-motion` implementado por primera vez** en toda la app
+  (no existía antes) -- se conserva el feedback de opacidad/color, se
+  elimina desplazamiento/escala/loop. Los spinners de carga quedan
+  exceptuados a propósito.
+- **Press feedback nuevo** (`.pressable`, utility class en `global.css`) en
+  tabs, chips, links de nav, botones de paginación y filas de tabla, que
+  antes solo tenían hover.
+- **Delight nuevo**: pulso de alerta en la tile "Errores 5xx" cuando el
+  conteo sube (`StatTile`, gated a `tone="status-critical"`); dip de
+  opacidad en `RequestsTable` mientras un cambio de filtro está en vuelo, en
+  vez de un corte seco entre las filas viejas y las nuevas.
+
+Sin cambios de backend en este pase. Build sigue en **196.76 kB** (gzip
+~60KB), dentro del límite de 500KB de RF-03.
+
+### 🐛 Bug real encontrado y arreglado: el login nunca se podía ver con `monitoring.auth.enabled = true`
+
+Al activar `monitoring.auth` para probar el `LoginForm` de verdad (antes solo
+se había probado con auth deshabilitado), el dashboard quedaba colgado
+indefinidamente en el spinner de "checking" -- nunca llegaba a mostrar el
+formulario. Causa raíz, en dos partes:
+
+1. **`GET /` (el HTML de la SPA) estaba detrás del mismo `basicAuthMiddleware`
+   que las rutas de datos.** Con eso, el navegador intenta resolver el
+   desafío de Basic Auth **antes** de servir el documento -- dispara su
+   propio diálogo nativo de credenciales en vez de dejar que cargue React,
+   así que el `LoginForm` custom de la app nunca llega a montarse. Fix:
+   `router.get("/", ...)` se registra ahora **antes** de
+   `router.use(basicAuthMiddleware(...))`, así la SPA siempre carga; solo
+   `/metrics`, `/requests` y `/requests/:id` quedan protegidos.
+2. **Con `GET /` ya liberado, `useAuth.js` seguía colgado** haciendo
+   `fetch("/metrics")` sin credenciales para detectar si hacía falta login.
+   Confirmado con un `Promise.race` contra un timeout de 3s: el `fetch()`
+   nunca resolvía. Causa: Chrome intercepta **cualquier** respuesta
+   `401 + WWW-Authenticate: Basic` a nivel de red, incluso para
+   `fetch()`/XHR (no solo navegación), e intenta mostrar su propio diálogo
+   nativo -- que en headless nunca aparece y en un navegador real tapa el
+   `LoginForm` de la app. Fix en `basicAuth.ts`: el header
+   `WWW-Authenticate` solo se manda si el request **no** trae
+   `Sec-Fetch-Mode` (Fetch Metadata Request Header que mandan todos los
+   navegadores -- y el `fetch` global de Node, por seguir el mismo spec --
+   en todo `fetch`/XHR; curl/Postman no lo mandan). Un cliente API real
+   sigue recibiendo el desafío RFC 7235 completo; un navegador (o cualquier
+   cliente `fetch`-spec-compliant) recibe el `401` limpio y puede manejarlo
+   en JS sin que el navegador se meta en el medio.
+
+**Importante**: `monitoring.auth.enabled` se dejó en `false` en
+`examples/express-basic/logger.config.json` -- se activó solo temporalmente
+para verificar el fix (con `LOGGER_MONITORING_USER`/`LOGGER_MONITORING_PASSWORD`
+en `backend/.env`, ya documentados como comentario en `.env.example`) y se
+revirtió antes de commitear, para no romper el quick-start del README (un
+clon nuevo del repo no tiene ese `.env`, y `resolveEnvVars` falla al arranque
+si la variable no existe). Si querés ver el login localmente: agregá esas dos
+variables a `backend/.env`, poné `monitoring.auth.enabled: true` en el config
+que uses, y corré la demo.
+
+3 tests nuevos (TDD) -- 1 en `router.test.ts` (GET / nunca devuelve 401) y 2
+en `basicAuth.test.ts` (con/sin `Sec-Fetch-Mode`, este último requirió bajar
+a `http.request` crudo porque hasta el `fetch` global de Node manda
+`Sec-Fetch-Mode`). Suite completa: **159 tests, todos en verde**.
 
 ## Próximas fases (en orden, una por vez)
 

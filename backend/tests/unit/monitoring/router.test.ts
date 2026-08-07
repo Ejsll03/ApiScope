@@ -88,7 +88,7 @@ describe("monitoring router - monitoring.enabled", () => {
 });
 
 describe("monitoring router - auth", () => {
-  it("exige Basic Auth en todas las rutas cuando monitoring.auth.enabled es true", async () => {
+  it("exige Basic Auth en los endpoints de datos cuando monitoring.auth.enabled es true", async () => {
     const { baseUrl } = await startApp(
       monitoringConfig({ auth: { enabled: true, type: "basic", username: "admin", password: "s3cret", sessionTimeoutHours: 1 } })
     );
@@ -98,6 +98,20 @@ describe("monitoring router - auth", () => {
     const authHeader = `Basic ${Buffer.from("admin:s3cret").toString("base64")}`;
     const res = await fetch(`${baseUrl}/api/monitoring/metrics`, { headers: { authorization: authHeader } });
     expect(res.status).toBe(200);
+  });
+
+  it("GET / (la SPA) nunca exige Basic Auth nativo, aunque monitoring.auth.enabled sea true", async () => {
+    // El login custom de la SPA (frontend/src/auth) necesita que el HTML
+    // cargue siempre para poder detectar un 401 de /metrics via JS y
+    // mostrar su propio LoginForm. Si "/" tambien exigiera credenciales,
+    // el navegador dispararia su dialogo nativo de Basic Auth antes de que
+    // React llegue a montar, y el LoginForm de la app nunca se veria.
+    const { baseUrl } = await startApp(
+      monitoringConfig({ auth: { enabled: true, type: "basic", username: "admin", password: "s3cret", sessionTimeoutHours: 1 } })
+    );
+
+    const res = await fetch(`${baseUrl}/api/monitoring`);
+    expect(res.status).not.toBe(401);
   });
 });
 
