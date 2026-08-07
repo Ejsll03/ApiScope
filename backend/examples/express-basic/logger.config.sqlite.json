@@ -1,0 +1,16 @@
+{
+  "storage": {
+    "strategy": "sqlite",
+    "config": {
+      "database_path": "./logs/api_logs.db"
+    }
+  },
+  "capture": {
+    "response_body": true
+  },
+  "monitoring": {
+    "auth": {
+      "enabled": false
+    }
+  }
+}

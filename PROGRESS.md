@@ -626,6 +626,33 @@ A pedido del usuario, el gestor de paquetes del backend pasó de `npm` a `pnpm`
   instalar `@vitest/coverage-v8` -- gap preexistente de RF-07, no relacionado con la
   migración (ver fase 6 pendiente).
 
+## Demo multi-storage (`pnpm run example:all`) — PRD 6.5
+
+El usuario preguntó como correr el backend y notó que no había forma de ver las 3
+estrategias de storage a la vez -- gap real contra el entregable 6.5 del PRD
+("Demostración de estrategias: Las 3 estrategias de storage"). Antes, `ApiScope` (por
+diseño, una instancia = una `StorageStrategy`) solo se podía probar de a una, y ni
+siquiera existía un `logger.config.sqlite.json` de ejemplo (solo memory y postgres).
+
+- **`examples/express-basic/createApp.ts`** (nuevo): se extrajo de `server.ts` toda la
+  lógica de armar la app Express (middleware, monitor, rutas `/health` `/users` `/boom`
+  `/crash` `/logs`, error handler) a una función `createDemoApp(configFile)` reutilizable,
+  sin el `app.listen()` (eso queda a cargo de quien la llame, porque el puerto varía
+  según si es una instancia sola o las 3 juntas).
+- **`server.ts`** ahora es un wrapper delgado sobre `createDemoApp` + `app.listen(3000)`
+  -- mismo comportamiento que antes para quien ya usaba `pnpm run example`/`example:postgres`.
+- **`examples/express-basic/logger.config.sqlite.json`** (nuevo): tercer config de
+  ejemplo que faltaba, `database_path: "./logs/api_logs.db"`.
+- **`examples/express-basic/run-all.ts`** (nuevo): levanta las 3 estrategias en el mismo
+  proceso node, cada una en su puerto (`memory` 3000, `sqlite` 3001, `postgres` 3002).
+  Si una falla al arrancar (típicamente postgres sin `.env`/sin `docker compose up -d`),
+  se loguea el error y se sigue con las otras dos en vez de tirar todo el proceso abajo
+  -- verificado a mano: sin `.env`, memory y sqlite quedan arriba y respondiendo
+  (`GET /health`, `POST /users` con password enmascarado en el monitor, `GET
+  /api/monitoring/requests`) mientras postgres avisa por consola y no bloquea nada.
+- Scripts nuevos en `package.json`: `example:sqlite` (equivalente a `example`/
+  `example:postgres` pero sqlite solo) y `example:all` (las 3 juntas).
+
 ## Próximas fases (en orden, una por vez)
 
 1. **Fase 5 — Dashboard web**: SPA embebida en un solo HTML (< 500KB), componentizada,
