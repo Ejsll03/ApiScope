@@ -8,6 +8,13 @@ export interface SystemInfo {
   memory: { rss: number; heapUsed: number; heapTotal: number };
 }
 
+/** Un minuto de la ventana de tiempo del dashboard (RF-03: "Timeline de Requests", "Performance"). */
+export interface TimelineBucket {
+  minute: string;
+  count: number;
+  avgLatencyMs: number;
+}
+
 export interface MetricsSnapshot {
   requests: {
     total: number;
@@ -31,10 +38,55 @@ export interface MetricsSnapshot {
   system: SystemInfo;
   topEndpoints: Array<{ path: string; count: number }>;
   slowestEndpoints: Array<{ path: string; avgLatencyMs: number }>;
+  /** Series por minuto de los ultimos `windowMinutes` (default 60), mas vieja primero. */
+  timeline: TimelineBucket[];
 }
 
 const TOP_N = 10;
 const RATE_WINDOW_MS = 60_000;
+const TIMELINE_WINDOW_MINUTES = 60;
+const MINUTE_MS = 60_000;
+
+function floorToMinute(date: Date): number {
+  return Math.floor(date.getTime() / MINUTE_MS) * MINUTE_MS;
+}
+
+/**
+ * Arma una serie de un punto por minuto (ventana fija, huecos en 0) para
+ * los graficos de linea del dashboard -- RF-03 pide "Requests por minuto
+ * en ultimas horas" y "Latencia promedio en el tiempo", pero el JSON de
+ * metricas del PRD (seccion "Metricas en Tiempo Real") no define un campo
+ * para eso: se agrega `timeline` como extension aditiva (MINOR, no rompe
+ * el contrato existente).
+ */
+function buildTimeline(
+  records: RequestLogRecord[],
+  now: Date,
+  windowMinutes = TIMELINE_WINDOW_MINUTES
+): TimelineBucket[] {
+  const nowMinute = floorToMinute(now);
+  const startMinute = nowMinute - (windowMinutes - 1) * MINUTE_MS;
+
+  const buckets = new Map<number, { count: number; latencySum: number }>();
+  for (let t = startMinute; t <= nowMinute; t += MINUTE_MS) {
+    buckets.set(t, { count: 0, latencySum: 0 });
+  }
+
+  for (const record of records) {
+    const bucket = buckets.get(floorToMinute(new Date(record.timestamp)));
+    if (!bucket) continue;
+    bucket.count += 1;
+    bucket.latencySum += record.latencyMs;
+  }
+
+  return [...buckets.entries()]
+    .sort(([a], [b]) => a - b)
+    .map(([t, { count, latencySum }]) => ({
+      minute: new Date(t).toISOString(),
+      count,
+      avgLatencyMs: count > 0 ? latencySum / count : 0,
+    }));
+}
 
 function statusBucket(statusCode: number): "2xx" | "3xx" | "4xx" | "5xx" | null {
   const bucket = Math.floor(statusCode / 100);
@@ -166,5 +218,6 @@ export function calculateMetrics(
     system,
     topEndpoints,
     slowestEndpoints,
+    timeline: buildTimeline(records, now),
   };
 }

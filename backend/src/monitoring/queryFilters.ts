@@ -41,6 +41,21 @@ function asBoolean(value: unknown): boolean | undefined {
 }
 
 /**
+ * El default historico de este endpoint es "solo requests" (asi nacio en
+ * la fase 4, y lo sigue cubriendo un test). RF-05 pide ademas que los logs
+ * manuales sean "consultables mediante filtros" y paginables "como los
+ * logs de requests" -- se agrega `type` como filtro explicito y aditivo:
+ * sin el query param, el comportamiento no cambia; `type=manual` trae solo
+ * logs manuales; `type=all` mezcla ambos (QueryOptions.type=undefined ya
+ * significa "sin filtro de tipo" en filterLogRecords()).
+ */
+function resolveType(query: Record<string, unknown>): "request" | "manual" | undefined {
+  const raw = asEnum(query.type, ["request", "manual", "all"] as const);
+  if (raw === undefined) return "request";
+  return raw === "all" ? undefined : raw;
+}
+
+/**
  * Traduce los query params HTTP de `GET /api/monitoring/requests` (RF-03,
  * seccion "Filtros de Busqueda") a QueryOptions. Valores invalidos o
  * ausentes simplemente se omiten (quedan `undefined`) en vez de fallar --
@@ -52,7 +67,7 @@ export function parseRequestListQuery(query: Record<string, unknown>): QueryOpti
     limit: asNumber(query.limit),
     order: asEnum(query.order, ["asc", "desc"] as const),
     direction: asEnum(query.direction, ["after", "before"] as const),
-    type: "request",
+    type: resolveType(query),
     method: asStringList(query.method)?.map((m) => m.toUpperCase()),
     statusCode: asNumberList(query.status_code),
     pathContains: asString(query.path),

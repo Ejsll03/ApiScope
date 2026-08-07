@@ -1,0 +1,76 @@
+.line-chart {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.line-chart-svg {
+  width: 100%;
+  height: auto;
+  display: block;
+  cursor: crosshair;
+}
+
+.line-chart-grid {
+  stroke: var(--gridline);
+  stroke-width: 1;
+}
+
+.line-chart-tick {
+  fill: var(--text-muted);
+  font-size: 9px;
+  font-variant-numeric: tabular-nums;
+}
+
+.line-chart-area {
+  opacity: 0.1;
+}
+
+.line-chart-line {
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  transition: stroke-dashoffset 0.9s var(--ease-out);
+}
+
+.line-chart-end-dot {
+  stroke: var(--surface-1);
+  stroke-width: 2;
+}
+
+.line-chart-crosshair {
+  stroke: var(--baseline);
+  stroke-width: 1;
+  stroke-dasharray: 3 3;
+}
+
+.line-chart-hover-dot {
+  stroke: var(--surface-1);
+  stroke-width: 2;
+}
+
+.line-chart-tooltip-bg {
+  fill: var(--surface-2);
+  stroke: var(--border);
+  filter: drop-shadow(0 2px 6px rgba(0, 0, 0, 0.15));
+}
+
+.line-chart-tooltip-label {
+  fill: var(--text-muted);
+  font-size: 9px;
+}
+
+.line-chart-tooltip-value {
+  fill: var(--text-primary);
+  font-size: 11px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.line-chart-xaxis {
+  display: flex;
+  justify-content: space-between;
+  padding: 0 4px;
+  font-size: 0.72rem;
+  color: var(--text-muted);
+}

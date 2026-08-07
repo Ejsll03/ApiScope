@@ -1,0 +1,61 @@
+.ranked-table table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.85rem;
+}
+
+.ranked-table th {
+  text-align: left;
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--text-muted);
+  font-weight: 600;
+  padding: 0 0 8px;
+}
+
+.ranked-table th:last-child,
+.ranked-table td:last-child {
+  width: 42%;
+}
+
+.ranked-table td {
+  padding: 7px 0;
+  border-top: 1px solid var(--gridline);
+}
+
+.ranked-path {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.8rem;
+  max-width: 1px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ranked-cell {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.ranked-mini-track {
+  flex: 1;
+  height: 6px;
+  background: var(--gridline);
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.ranked-mini-fill {
+  height: 100%;
+  border-radius: 3px;
+  transition: width 0.6s var(--ease-out);
+}
+
+.ranked-cell span {
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+  min-width: 44px;
+  text-align: right;
+}

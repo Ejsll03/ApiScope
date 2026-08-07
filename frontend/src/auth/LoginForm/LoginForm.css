@@ -1,0 +1,101 @@
+.login-screen {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: radial-gradient(circle at top, color-mix(in srgb, var(--series-1) 8%, var(--surface-0)), var(--surface-0));
+  padding: 24px;
+}
+
+.login-card {
+  width: min(360px, 100%);
+  background: var(--surface-1);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-md);
+  padding: 32px 28px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.login-logo {
+  width: 44px;
+  height: 44px;
+  border-radius: var(--radius-md);
+  background: color-mix(in srgb, var(--series-1) 12%, var(--surface-1));
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 12px;
+}
+
+.login-card h1 {
+  font-size: 1.25rem;
+  margin: 0 0 4px;
+}
+
+.login-subtitle {
+  color: var(--text-secondary);
+  margin: 0 0 20px;
+  font-size: 0.9rem;
+}
+
+.login-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 16px;
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+}
+
+.login-field input {
+  border: 1px solid var(--border);
+  background: var(--surface-2);
+  border-radius: var(--radius-sm);
+  padding: 10px 12px;
+  font-size: 0.95rem;
+  transition: border-color 0.15s var(--ease-out), box-shadow 0.15s var(--ease-out);
+}
+
+.login-field input:focus {
+  outline: none;
+  border-color: var(--series-1);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--series-1) 20%, transparent);
+}
+
+.login-error {
+  background: color-mix(in srgb, var(--status-critical) 12%, var(--surface-1));
+  color: var(--status-critical);
+  border-radius: var(--radius-sm);
+  padding: 8px 10px;
+  font-size: 0.85rem;
+  margin-bottom: 12px;
+}
+
+.login-submit {
+  background: var(--series-1);
+  color: white;
+  border: none;
+  border-radius: var(--radius-sm);
+  padding: 11px;
+  font-size: 0.95rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: transform 0.12s var(--ease-out), box-shadow 0.12s var(--ease-out), opacity 0.12s;
+}
+
+.login-submit:hover:not(:disabled) {
+  box-shadow: 0 6px 16px color-mix(in srgb, var(--series-1) 45%, transparent);
+  transform: translateY(-1px);
+}
+
+.login-submit:active:not(:disabled) {
+  transform: translateY(0);
+}
+
+.login-submit:disabled {
+  opacity: 0.6;
+  cursor: default;
+}

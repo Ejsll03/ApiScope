@@ -140,6 +140,18 @@ describe("monitoring router - GET /requests", () => {
     expect(body.data.map((r: { id: string }) => r.id)).toEqual(["get-ok"]);
   });
 
+  it("con type=all mezcla requests y manual logs; con type=manual trae solo manuales", async () => {
+    const { baseUrl, storage: store } = await startApp(monitoringConfig());
+    await store.saveRequestLog(buildRequestLog({ id: "r1", requestId: "r1" }));
+    await store.saveManualLog({ id: "m1", type: "manual", timestamp: "2026-01-01T00:00:00.000Z", level: "INFO", message: "hola" });
+
+    const all = await (await fetch(`${baseUrl}/api/monitoring/requests?type=all`)).json();
+    expect(all.data.map((r: { id: string }) => r.id).sort()).toEqual(["m1", "r1"]);
+
+    const manualOnly = await (await fetch(`${baseUrl}/api/monitoring/requests?type=manual`)).json();
+    expect(manualOnly.data.map((r: { id: string }) => r.id)).toEqual(["m1"]);
+  });
+
   it("filtra por has_error=true", async () => {
     const { baseUrl, storage: store } = await startApp(monitoringConfig());
     await store.saveRequestLog(buildRequestLog({ id: "ok", requestId: "ok", statusCode: 200 }));
@@ -193,11 +205,13 @@ describe("monitoring router - GET /requests/:id", () => {
     expect(res.status).toBe(404);
   });
 
-  it("responde 404 si el id pertenece a un manual log, no a una request", async () => {
+  it("devuelve el detalle de un manual log (RF-05: mismo endpoint que las requests)", async () => {
     const { baseUrl, storage: store } = await startApp(monitoringConfig());
     await store.saveManualLog({ id: "m1", type: "manual", timestamp: "2026-01-01T00:00:00.000Z", level: "INFO", message: "hola" });
 
     const res = await fetch(`${baseUrl}/api/monitoring/requests/m1`);
-    expect(res.status).toBe(404);
+    expect(res.status).toBe(200);
+    const body = await res.json();
+    expect(body).toMatchObject({ id: "m1", type: "manual", level: "INFO", message: "hola" });
   });
 });

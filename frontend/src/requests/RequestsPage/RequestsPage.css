@@ -1,0 +1,41 @@
+.requests-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.requests-title {
+  font-size: 1.3rem;
+  margin: 0;
+}
+
+.id-search {
+  display: flex;
+  gap: 6px;
+}
+
+.id-search input {
+  border: 1px solid var(--border);
+  background: var(--surface-2);
+  border-radius: var(--radius-sm);
+  padding: 7px 10px;
+  font-size: 0.82rem;
+  width: 220px;
+}
+
+.id-search button {
+  border: 1px solid var(--border);
+  background: var(--series-1);
+  color: white;
+  border-radius: var(--radius-sm);
+  padding: 7px 14px;
+  font-size: 0.82rem;
+  cursor: pointer;
+}
+
+.id-search-error {
+  color: var(--status-critical);
+  font-size: 0.82rem;
+}

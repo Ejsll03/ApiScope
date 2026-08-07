@@ -1,0 +1,10 @@
+.state-message {
+  padding: 28px 16px;
+  text-align: center;
+  font-size: 0.88rem;
+  color: var(--text-muted);
+}
+
+.state-message-error {
+  color: var(--status-critical);
+}

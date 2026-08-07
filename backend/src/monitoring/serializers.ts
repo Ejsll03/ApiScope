@@ -103,5 +103,10 @@ export function toHttpMetrics(metrics: MetricsSnapshot) {
       path: entry.path,
       avg_latency_ms: entry.avgLatencyMs,
     })),
+    timeline: metrics.timeline.map((bucket) => ({
+      minute: bucket.minute,
+      count: bucket.count,
+      avg_latency_ms: bucket.avgLatencyMs,
+    })),
   };
 }

@@ -1,0 +1,115 @@
+.filters-bar {
+  background: var(--surface-1);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 14px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.filters-tabs {
+  display: flex;
+  gap: 4px;
+}
+
+.filters-tab {
+  border: none;
+  background: none;
+  padding: 6px 12px;
+  border-radius: var(--radius-sm);
+  font-size: 0.82rem;
+  font-weight: 500;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: background 0.15s var(--ease-out), color 0.15s var(--ease-out);
+}
+
+.filters-tab:hover {
+  background: color-mix(in srgb, var(--series-1) 8%, transparent);
+}
+
+.filters-tab.is-active {
+  background: var(--series-1);
+  color: white;
+}
+
+.filters-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.filters-methods {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.filters-chip {
+  border: 1px solid var(--border);
+  background: var(--surface-2);
+  padding: 5px 11px;
+  border-radius: 999px;
+  font-size: 0.76rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s var(--ease-out), border-color 0.15s var(--ease-out), color 0.15s var(--ease-out);
+}
+
+.filters-chip:hover {
+  border-color: var(--series-1);
+}
+
+.filters-chip.is-active {
+  background: color-mix(in srgb, var(--series-1) 16%, transparent);
+  border-color: var(--series-1);
+  color: var(--series-1);
+}
+
+.filters-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+}
+
+.filters-input {
+  border: 1px solid var(--border);
+  background: var(--surface-2);
+  border-radius: var(--radius-sm);
+  padding: 7px 10px;
+  font-size: 0.82rem;
+  min-width: 0;
+}
+
+.filters-input:disabled {
+  opacity: 0.5;
+}
+
+.filters-input:focus {
+  outline: none;
+  border-color: var(--series-1);
+}
+
+.filters-input:not(.filters-input-sm):not(.filters-input-xs) {
+  flex: 1;
+  min-width: 160px;
+}
+
+.filters-input-sm {
+  width: 150px;
+}
+
+.filters-input-xs {
+  width: 90px;
+}
+
+.filters-checkbox {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+  white-space: nowrap;
+}

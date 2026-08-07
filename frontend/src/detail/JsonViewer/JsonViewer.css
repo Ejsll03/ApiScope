@@ -1,0 +1,39 @@
+.json-viewer {
+  position: relative;
+}
+
+.json-viewer pre {
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 12px 14px;
+  margin: 0;
+  max-height: 340px;
+  overflow-y: auto;
+}
+
+.json-viewer code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.8rem;
+  line-height: 1.5;
+  white-space: pre;
+}
+
+.json-viewer-copy {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  border: 1px solid var(--border);
+  background: var(--surface-1);
+  border-radius: var(--radius-sm);
+  padding: 4px 10px;
+  font-size: 0.72rem;
+  cursor: pointer;
+  z-index: 1;
+}
+
+.jv-key { color: var(--series-1); }
+.jv-string { color: var(--status-good); }
+.jv-number { color: var(--series-2); }
+.jv-boolean { color: var(--series-7); }
+.jv-null { color: var(--text-muted); }

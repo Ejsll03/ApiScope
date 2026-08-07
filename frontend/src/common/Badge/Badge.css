@@ -1,0 +1,24 @@
+.badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.badge-series-1 { background: color-mix(in srgb, var(--series-1) 16%, transparent); color: var(--series-1); }
+.badge-series-3 { background: color-mix(in srgb, var(--series-3) 18%, transparent); color: var(--series-3); }
+.badge-series-4 { background: color-mix(in srgb, var(--series-4) 22%, transparent); color: color-mix(in srgb, var(--series-4) 75%, black); }
+.badge-series-5 { background: color-mix(in srgb, var(--series-5) 20%, transparent); color: color-mix(in srgb, var(--series-5) 70%, black); }
+.badge-series-6 { background: color-mix(in srgb, var(--series-6) 16%, transparent); color: var(--series-6); }
+.badge-series-7 { background: color-mix(in srgb, var(--series-7) 16%, transparent); color: var(--series-7); }
+.badge-series-8 { background: color-mix(in srgb, var(--series-8) 16%, transparent); color: var(--series-8); }
+
+.badge-status-good { background: color-mix(in srgb, var(--status-good) 16%, transparent); color: var(--status-good); }
+.badge-status-neutral { background: color-mix(in srgb, var(--status-neutral) 20%, transparent); color: var(--text-secondary); }
+.badge-status-warning { background: color-mix(in srgb, var(--status-warning) 28%, transparent); color: color-mix(in srgb, var(--status-warning) 55%, black); }
+.badge-status-serious { background: color-mix(in srgb, var(--status-serious) 24%, transparent); color: color-mix(in srgb, var(--status-serious) 60%, black); }
+.badge-status-critical { background: color-mix(in srgb, var(--status-critical) 16%, transparent); color: var(--status-critical); }

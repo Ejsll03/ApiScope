@@ -653,11 +653,134 @@ siquiera existía un `logger.config.sqlite.json` de ejemplo (solo memory y postg
 - Scripts nuevos en `package.json`: `example:sqlite` (equivalente a `example`/
   `example:postgres` pero sqlite solo) y `example:all` (las 3 juntas).
 
+## Estado: Fase 5 completa ✅ — Dashboard web (React + JS, sin TypeScript)
+
+`frontend/` nuevo: SPA de monitoreo compilada a un unico `backend/dashboard/index.html`
+(Vite + `vite-plugin-singlefile`), servida por el monitoring router en `GET /` (ver
+`backend/src/monitoring/router.ts`). A pedido explicito, el frontend se escribio en
+**JavaScript puro (JSX), no TypeScript** -- unica parte del repo que rompe esa
+convencion; el backend sigue en TS.
+
+### Por que React "cumple" RF-03 pese al requisito "sin build process"
+
+RF-03 lista React como tecnologia sugerida y permite explicitamente cualquier
+framework componentizado. La aparente contradiccion con "sin build process /
+todo en un solo HTML / <500KB" se resuelve igual que ya anticipaba el
+`frontend/README.md` original: el build corre una sola vez, en desarrollo del
+paquete (esta fase), y lo que se distribuye/publica es el HTML ya compilado --
+el consumidor final de `apiscope` nunca corre `vite build`. El bundle final
+pesa **~200KB** (gzip ~60KB), bien debajo del limite. No se uso Chart.js ni
+ninguna libreria de graficos via CDN (la tabla de RF-03 lo sugiere pero no lo
+exige): los graficos son SVG/HTML a mano en `src/common/LineChart` y
+`src/dashboard/*BarChart`, con paleta categorica + de severidad validada
+(contraste AA, distinguible con daltonismo) y animaciones de entrada. Evitar
+la CDN ademas es mas consistente con RF-01 ("no depende de servicios cloud
+externos") que depender de una red externa en runtime.
+
+### Gap encontrado y cerrado: la API de metricas no tenia series temporales
+
+`calculateMetrics()` (fase 4) solo devolvia un snapshot agregado -- `ratePerMinute`
+es un numero, no una serie. RF-03 pide explicitamente un grafico de linea de
+"Requests por minuto en ultimas horas" y otro de "Latencia promedio en el
+tiempo", que no se pueden dibujar sobre un solo numero. Se agrego
+`MetricsSnapshot.timeline`: 60 buckets de un minuto (huecos en cero), cada uno
+con `count` y `avgLatencyMs`, calculados en `buildTimeline()`
+(`backend/src/monitoring/metrics.ts`) y expuestos en `toHttpMetrics()` como
+`timeline: [{ minute, count, avg_latency_ms }]`. Es un campo nuevo y aditivo
+(MINOR, no rompe el contrato existente) -- 4 tests nuevos en `metrics.test.ts`
+cubren la ventana vacia, el orden cronologico, el agrupamiento por minuto y el
+descarte de datos fuera de ventana.
+
+### Gap encontrado y cerrado: los logs manuales eran invisibles para `/requests`
+
+`parseRequestListQuery()` (fase 4) hardcodeaba `type: "request"`, y
+`GET /requests/:id` devolvia 404 para cualquier id de un `ManualLogRecord` --
+ambos comportamientos estaban deliberadamente testeados en la fase 4. RF-05
+pide que los logs manuales sean "consultables mediante filtros en la interface
+web" y soporten "paginación por cursor como los logs de requests", lo cual
+requeria que el mismo endpoint pudiera devolverlos. Se agrego `type` como
+filtro HTTP explicito y aditivo (`request` default -- no cambia el
+comportamiento ni el test viejo -- `manual`, o `all` para mezclar ambos), y
+`GET /requests/:id` ahora sirve el detalle de cualquiera de los dos tipos
+(`toHttpLogRecord` ya discriminaba la forma por `type`). El test viejo que
+esperaba 404 para un manual log se reemplazo por uno que espera 200 con su
+forma serializada; se sumo un test nuevo para `type=manual`/`type=all`.
+
+### Componentes principales
+
+- **Auth (`src/auth/`)**: `useAuth` no sabe de antemano si
+  `monitoring.auth.enabled` es true -- prueba `GET /metrics` sin credenciales al
+  montar; 200 = interface publica, 401 = muestra `LoginForm`. Credenciales
+  guardadas como `Basic base64(user:pass)` en `localStorage` junto a un
+  timestamp de expiracion (default 1h -- el backend no expone
+  `session_timeout_hours` via API, asi que el frontend usa el mismo default
+  documentado en RF-06); un timer cada 30s fuerza logout si la sesion vencio
+  con la pestaña abierta. Boton de logout visible salvo en modo publico.
+- **Router (`src/router/useHashRoute.js`)**: hash-router minimo escrito a mano
+  (`#/dashboard`, `#/requests`, `#/requests/:id`) en vez de `react-router`, para
+  no sumar peso al bundle en una SPA de tres vistas.
+- **Dashboard (`src/dashboard/`)**: `SummaryCards` (con animacion count-up),
+  `MethodDistributionChart` (barras, un solo hue), `StatusDistributionChart`
+  (una barra apilada 2xx/3xx/4xx/5xx con colores de severidad),
+  `TimelineChart`/`LatencyChart` (line chart SVG compartido con crosshair +
+  tooltip), `TopEndpointsTable`/`SlowestEndpointsTable` (envoltorios finos sobre
+  `common/RankedTable`), `RecentErrorsList` (reutiliza
+  `/requests?has_error=true`), `AutoRefreshControl` (5s-5min, pausable, pulso en
+  vivo).
+- **Requests (`src/requests/`)**: `FiltersBar` (debounce 400ms; pestañas
+  Requests/Logs manuales/Todos; oculta los filtros propios de requests --
+  method/status/latencia/has_error -- en la pestaña de manuales porque
+  combinarlos con `type=manual` siempre da 0 resultados en el filtro del
+  backend), `RequestsTable` (filas distintas para request vs manual log),
+  `CursorPagination` (adelante/atras usando `next_cursor`/`prev_cursor`
+  directo de la respuesta, sin pila propia -- el backend ya los devuelve
+  simetricos, ver fase 4).
+- **Detalle (`src/detail/`)**: `RequestDetailPage` (secciones General /
+  Performance / Request Info / Response Info / Error Info / Client Info) y
+  `ManualDetail` para logs manuales (contexto, metadata, stack trace).
+  `JsonViewer` con syntax highlighting hecho a mano (regex sobre
+  `JSON.stringify`) -- **escapa `&`/`<`/`>` antes de resaltar** y recien
+  despues envuelve en `<span>` via `dangerouslySetInnerHTML`, para que un body
+  de request con HTML/JS embebido no pueda inyectar markup (RNF-05, XSS
+  Prevention).
+- **Animaciones**: entrada de secciones (`fade-in`), conteo animado en los
+  stat tiles, barras/segmentos que crecen desde 0, trazado progresivo de las
+  lineas (`stroke-dashoffset`), pulso del indicador de auto-refresh en vivo,
+  toggle de tema con transicion.
+
+### Tests de backend afectados
+
+Esta fase se desarrollo en paralelo al cierre de gaps de RF-06 de mas arriba
+(sobre la base de 129 tests de fin de fase 4, antes de que ese trabajo subiera
+la suite a 148). Le suma 5 tests propios -- 4 nuevos para `timeline`, 1 neto
+para `type=all`/`type=manual`/`router.test.ts` (un test reemplazado + uno
+nuevo), mas 1 test de `serializers.test.ts` actualizado sin sumar caso nuevo
+-- asi que la suite combinada (RF-06 + esta fase) deberia quedar en **153
+tests, todos en verde**; confirmar con `pnpm test` en vez de confiar en este
+numero si volves a esta seccion mucho despues.
+
+### Pendiente / fuera de alcance de esta fase
+
+- Sin Playwright Component Testing todavia (RF-07/RNF-03 lo piden para los
+  organismos de la UI) -- queda para la fase 6, junto con Vitest al 70% en
+  componentes core y el resto de la disciplina de mantenimiento.
+- El frontend no tiene tests propios (ni unitarios ni de componentes) --
+  mismo motivo, fase 6.
+- `npm audit` en `frontend/` reporta una vulnerabilidad moderada en
+  `esbuild<=0.24.2` (via `vite@5`): solo afecta al dev server (`vite dev`,
+  permite que cualquier sitio le pegue y lea la respuesta), no al build de
+  produccion que es lo que se publica. Arreglarla implica saltar a `vite@8`
+  (breaking). No se tocó por quedar fuera del alcance de esta fase. `frontend/`
+  sigue en npm (no se migro a pnpm junto con el backend) -- evaluar si conviene
+  unificar en la fase 6.
+- El fetch de `RecentErrorsList` y el de `useMetrics` corren en paralelo con
+  el mismo `intervalSeconds`, pero son dos requests HTTP independientes (no
+  hay un endpoint combinado) -- aceptable a esta escala, revisar si se vuelve
+  un problema de throughput real.
+
 ## Próximas fases (en orden, una por vez)
 
-1. **Fase 5 — Dashboard web**: SPA embebida en un solo HTML (< 500KB), componentizada,
-   Chart.js vía CDN, tabla con filtros, vista de detalle, auto-refresh.
-2. **Fase 6 — Testing, versionado, docs, deprecación**: Vitest (cobertura ≥70% en
+1. **Fase 6 — Testing, versionado, docs, deprecación**: Vitest (cobertura ≥70% en
    storage/middleware/config/utils), Playwright Component Testing para la UI,
    CHANGELOG.md (Keep a Changelog), MIGRATION.md con una deprecación real (RF-09),
    README/CONFIGURATION/ARCHITECTURE/API.md, publicación del paquete.

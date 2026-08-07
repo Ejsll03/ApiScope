@@ -163,6 +163,45 @@ describe("calculateMetrics - top endpoints y mas lentos", () => {
   });
 });
 
+describe("calculateMetrics - timeline (buckets por minuto)", () => {
+  it("devuelve 60 buckets (ventana default) aunque no haya datos, todos en cero", () => {
+    const now = new Date("2026-01-01T00:59:30.000Z");
+    const metrics = calculateMetrics([], { now });
+    expect(metrics.timeline).toHaveLength(60);
+    expect(metrics.timeline.every((bucket) => bucket.count === 0 && bucket.avgLatencyMs === 0)).toBe(
+      true
+    );
+  });
+
+  it("ordena los buckets de mas viejo a mas nuevo y el ultimo es el minuto de `now`", () => {
+    const now = new Date("2026-01-01T00:59:30.000Z");
+    const metrics = calculateMetrics([], { now });
+    expect(metrics.timeline[0].minute).toBe("2026-01-01T00:00:00.000Z");
+    expect(metrics.timeline[59].minute).toBe("2026-01-01T00:59:00.000Z");
+  });
+
+  it("agrupa requests del mismo minuto y promedia su latencia", () => {
+    const now = new Date("2026-01-01T00:10:00.000Z");
+    const records = [
+      record({ id: "1", timestamp: "2026-01-01T00:05:10.000Z", latencyMs: 10 }),
+      record({ id: "2", timestamp: "2026-01-01T00:05:40.000Z", latencyMs: 30 }),
+      record({ id: "3", timestamp: "2026-01-01T00:06:00.000Z", latencyMs: 100 }),
+    ];
+    const metrics = calculateMetrics(records, { now });
+    const minute5 = metrics.timeline.find((bucket) => bucket.minute === "2026-01-01T00:05:00.000Z");
+    const minute6 = metrics.timeline.find((bucket) => bucket.minute === "2026-01-01T00:06:00.000Z");
+    expect(minute5).toEqual({ minute: "2026-01-01T00:05:00.000Z", count: 2, avgLatencyMs: 20 });
+    expect(minute6).toEqual({ minute: "2026-01-01T00:06:00.000Z", count: 1, avgLatencyMs: 100 });
+  });
+
+  it("descarta requests mas viejas que la ventana", () => {
+    const now = new Date("2026-01-01T02:00:00.000Z");
+    const records = [record({ id: "old", timestamp: "2026-01-01T00:00:00.000Z", latencyMs: 999 })];
+    const metrics = calculateMetrics(records, { now });
+    expect(metrics.timeline.every((bucket) => bucket.count === 0)).toBe(true);
+  });
+});
+
 describe("getSystemInfo", () => {
   it("devuelve uptime, version y memoria con formas razonables", () => {
     const info = getSystemInfo();

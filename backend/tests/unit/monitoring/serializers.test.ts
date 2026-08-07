@@ -117,6 +117,7 @@ describe("toHttpMetrics", () => {
       system: { uptimeSeconds: 100, version: "0.1.0", memory: { rss: 1, heapUsed: 2, heapTotal: 3 } },
       topEndpoints: [{ path: "/x", count: 1 }],
       slowestEndpoints: [{ path: "/x", avgLatencyMs: 10 }],
+      timeline: [{ minute: "2026-01-01T00:00:00.000Z", count: 1, avgLatencyMs: 10 }],
     };
 
     const http = toHttpMetrics(metrics);
@@ -133,5 +134,6 @@ describe("toHttpMetrics", () => {
     expect(http.system).toEqual({ uptime_seconds: 100, version: "0.1.0", memory: { rss: 1, heap_used: 2, heap_total: 3 } });
     expect(http.top_endpoints).toEqual([{ path: "/x", count: 1 }]);
     expect(http.slowest_endpoints).toEqual([{ path: "/x", avg_latency_ms: 10 }]);
+    expect(http.timeline).toEqual([{ minute: "2026-01-01T00:00:00.000Z", count: 1, avg_latency_ms: 10 }]);
   });
 });
