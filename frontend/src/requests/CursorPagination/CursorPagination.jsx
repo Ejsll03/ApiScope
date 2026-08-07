@@ -8,10 +8,10 @@ export function CursorPagination({ canPrev, canNext, onPrev, onNext, totalCount,
         {shown} de {totalCount.toLocaleString("es")} registros
       </span>
       <div className="cursor-pagination-buttons">
-        <button onClick={onPrev} disabled={!canPrev}>
+        <button className="pressable" onClick={onPrev} disabled={!canPrev}>
           ← Anterior
         </button>
-        <button onClick={onNext} disabled={!canNext}>
+        <button className="pressable" onClick={onNext} disabled={!canNext}>
           Siguiente →
         </button>
       </div>

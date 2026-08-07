@@ -70,7 +70,7 @@ export function FiltersBar({ onChange }) {
         {TYPE_TABS.map((tab) => (
           <button
             key={tab.value}
-            className={"filters-tab" + (draft.type === tab.value ? " is-active" : "")}
+            className={"filters-tab pressable" + (draft.type === tab.value ? " is-active" : "")}
             onClick={() => set("type", tab.value)}
           >
             {tab.label}
@@ -84,7 +84,7 @@ export function FiltersBar({ onChange }) {
             {METHODS.map((method) => (
               <button
                 key={method}
-                className={"filters-chip" + (draft.method.includes(method) ? " is-active" : "")}
+                className={"filters-chip pressable" + (draft.method.includes(method) ? " is-active" : "")}
                 onClick={() => toggleMethod(method)}
               >
                 {method}

@@ -22,10 +22,17 @@ function niceMax(value) {
  * `points`: [{ label, value }]. Un solo hue -- una sola serie no necesita
  * leyenda (el titulo de la card ya dice que se esta graficando). Incluye
  * crosshair + tooltip por defecto (dataviz: "an HTML/SVG chart IS
- * interactive"), y una animacion de trazado al montar/actualizar datos.
+ * interactive"), y una animacion de trazado que juega una sola vez al
+ * montar -- el dashboard hace auto-refresh cada `autoRefreshInterval`
+ * (30s por default) y `points` cambia en cada ciclo, asi que re-jugar el
+ * trazado completo en cada refresh haria que el grafico se "borre y
+ * redibuje" indefinidamente mientras la pestaña esta abierta. Con
+ * `hasDrawnOnce`, las actualizaciones posteriores al primer paint
+ * simplemente muestran la nueva forma sin el barrido de stroke-dashoffset.
  */
 export function LineChart({ points, colorVar = "--series-1", valueFormatter = (v) => Math.round(v) }) {
   const pathRef = useRef(null);
+  const hasDrawnOnce = useRef(false);
   const [drawn, setDrawn] = useState(false);
   const [hoverIndex, setHoverIndex] = useState(null);
 
@@ -46,8 +53,15 @@ export function LineChart({ points, colorVar = "--series-1", valueFormatter = (v
     : "";
 
   useLayoutEffect(() => {
+    if (hasDrawnOnce.current) {
+      setDrawn(true);
+      return undefined;
+    }
     setDrawn(false);
-    const id = requestAnimationFrame(() => setDrawn(true));
+    const id = requestAnimationFrame(() => {
+      setDrawn(true);
+      hasDrawnOnce.current = true;
+    });
     return () => cancelAnimationFrame(id);
   }, [linePath]);
 

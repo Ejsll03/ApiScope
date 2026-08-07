@@ -2,6 +2,15 @@
   width: 100%;
   border-collapse: collapse;
   font-size: 0.85rem;
+  transition: opacity var(--duration-base) var(--ease-out);
+}
+
+/* Cuando cambia un filtro, las filas viejas siguen visibles hasta que
+   llega la respuesta nueva (RequestsTable no las limpia de entrada para
+   evitar el flash del skeleton). Este dip cubre ese instante en vez de
+   que el contenido se reemplace en un corte seco. */
+.requests-table.is-refetching table {
+  opacity: 0.5;
 }
 
 .requests-table th {
@@ -23,7 +32,7 @@
 
 .requests-table tbody tr:not(.skeleton-row) {
   cursor: pointer;
-  transition: background 0.15s var(--ease-out);
+  transition: background var(--duration-fast) var(--ease-out);
 }
 
 .requests-table tbody tr:hover {

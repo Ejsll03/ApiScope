@@ -5,7 +5,7 @@ import "./RequestsTable.css";
 
 function RequestRow({ record, onSelect, style }) {
   return (
-    <tr className="fade-in" style={style} onClick={() => onSelect(record.id)}>
+    <tr className="fade-in pressable" style={style} onClick={() => onSelect(record.id)}>
       <td>
         <MethodBadge method={record.method} />
       </td>
@@ -23,7 +23,7 @@ function RequestRow({ record, onSelect, style }) {
 
 function ManualRow({ record, onSelect, style }) {
   return (
-    <tr className="fade-in is-manual" style={style} onClick={() => onSelect(record.id)}>
+    <tr className="fade-in is-manual pressable" style={style} onClick={() => onSelect(record.id)}>
       <td>
         <LevelBadge level={record.level} />
       </td>
@@ -42,7 +42,7 @@ export function RequestsTable({ data, loading, error, onSelect }) {
   if (!loading && data.length === 0) return <StateMessage>No hay registros con estos filtros.</StateMessage>;
 
   return (
-    <div className="requests-table scrollx">
+    <div className={"requests-table scrollx" + (loading && data.length > 0 ? " is-refetching" : "")}>
       <table>
         <thead>
           <tr>

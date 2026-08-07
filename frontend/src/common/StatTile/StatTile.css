@@ -7,12 +7,27 @@
   display: flex;
   align-items: center;
   gap: 14px;
-  transition: transform 0.2s var(--ease-out), box-shadow 0.2s var(--ease-out);
+  transition: transform var(--duration-base) var(--ease-out), box-shadow var(--duration-base) var(--ease-out);
 }
 
-.stat-tile:hover {
-  transform: translateY(-2px);
-  box-shadow: var(--shadow-md);
+@media (hover: hover) and (pointer: fine) {
+  .stat-tile:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-md);
+  }
+}
+
+.stat-tile.stat-tile-alert {
+  animation: statAlertPulse 700ms var(--ease-out);
+}
+
+@keyframes statAlertPulse {
+  0% {
+    box-shadow: 0 0 0 0 color-mix(in srgb, var(--status-critical) 45%, transparent);
+  }
+  100% {
+    box-shadow: 0 0 0 10px color-mix(in srgb, var(--status-critical) 0%, transparent);
+  }
 }
 
 .stat-tile-icon {

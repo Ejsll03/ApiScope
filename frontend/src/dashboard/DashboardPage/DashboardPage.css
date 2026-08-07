@@ -38,6 +38,11 @@
   padding: 5px 10px;
   font-size: 0.8rem;
   cursor: pointer;
+  transition: background var(--duration-fast) var(--ease-out);
+}
+
+.dashboard-pause:hover {
+  background: color-mix(in srgb, var(--series-1) 10%, var(--surface-2));
 }
 
 .dashboard-stats {
@@ -66,6 +71,7 @@
 .recent-errors tr {
   cursor: pointer;
   border-top: 1px solid var(--border);
+  transition: background var(--duration-fast) var(--ease-out);
 }
 
 .recent-errors tr:hover {

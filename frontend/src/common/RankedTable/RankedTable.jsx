@@ -26,7 +26,7 @@ export function RankedTable({ entries, valueKey, valueLabel, formatValue = (v) =
                   <div className="ranked-mini-track">
                     <div
                       className="ranked-mini-fill"
-                      style={{ width: `${(entry[valueKey] / max) * 100}%`, background: `var(${colorVar})` }}
+                      style={{ transform: `scaleX(${entry[valueKey] / max})`, background: `var(${colorVar})` }}
                     />
                   </div>
                   <span>{formatValue(entry[valueKey])}</span>

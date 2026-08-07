@@ -37,22 +37,33 @@
   --radius-lg: 16px;
   --shadow-sm: 0 1px 2px rgba(11, 11, 11, 0.06);
   --shadow-md: 0 8px 24px rgba(11, 11, 11, 0.08);
-  --font-sans: system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-sans: "Inter", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-mono: ui-monospace, SFMono-Regular, Menlo, monospace;
+
+  /* Motion: --ease-out cubre entradas/hover (mayoria de los casos de esta
+     UI); --ease-in-out queda para movimiento en pantalla (drag, reorder).
+     Escala de duracion en 3 pasos -- fast para feedback de un solo
+     elemento, base para transiciones de contenido, slow para dibujos de
+     datos (barras, charts) donde un cambio brusco se leeria como parpadeo. */
   --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-in-out: cubic-bezier(0.65, 0, 0.35, 1);
+  --duration-fast: 120ms;
+  --duration-base: 180ms;
+  --duration-slow: 320ms;
 }
 
 @media (prefers-color-scheme: dark) {
   :root:where(:not([data-theme="light"])) {
     color-scheme: dark;
-    --surface-0: #0d0d0d;
-    --surface-1: #1a1a19;
-    --surface-2: #202020;
-    --text-primary: #ffffff;
-    --text-secondary: #c3c2b7;
-    --text-muted: #898781;
-    --border: rgba(255, 255, 255, 0.1);
-    --gridline: #2c2c2a;
-    --baseline: #383835;
+    --surface-0: #0a0e17;
+    --surface-1: #0f1729;
+    --surface-2: #172136;
+    --text-primary: #f8fafc;
+    --text-secondary: #cbd5e1;
+    --text-muted: #94a3b8;
+    --border: #263652;
+    --gridline: #1c2942;
+    --baseline: #334155;
     --success-text: #0ca30c;
 
     --series-1: #3987e5;
@@ -71,15 +82,15 @@
 
 :root[data-theme="dark"] {
   color-scheme: dark;
-  --surface-0: #0d0d0d;
-  --surface-1: #1a1a19;
-  --surface-2: #202020;
-  --text-primary: #ffffff;
-  --text-secondary: #c3c2b7;
-  --text-muted: #898781;
-  --border: rgba(255, 255, 255, 0.1);
-  --gridline: #2c2c2a;
-  --baseline: #383835;
+  --surface-0: #0a0e17;
+  --surface-1: #0f1729;
+  --surface-2: #172136;
+  --text-primary: #f8fafc;
+  --text-secondary: #cbd5e1;
+  --text-muted: #94a3b8;
+  --border: #263652;
+  --gridline: #1c2942;
+  --baseline: #334155;
   --success-text: #0ca30c;
 
   --series-1: #3987e5;

@@ -95,11 +95,69 @@ a {
 }
 
 .fade-in {
-  animation: fadeSlideIn 0.35s var(--ease-out) both;
+  animation: fadeSlideIn var(--duration-slow) var(--ease-out) both;
 }
 
 .scrollx {
   overflow-x: auto;
+}
+
+/* Feedback tactil para elementos clickeados con frecuencia (tabs, chips,
+   filas, botones de paginacion) -- ver NavBar, FiltersBar, RequestsTable,
+   CursorPagination. Rango sutil (0.97), igual criterio que ThemeToggle. */
+.pressable {
+  transition: transform var(--duration-fast) var(--ease-out);
+}
+
+.pressable:active {
+  transform: scale(0.97);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  /* Reduced motion no es cero motion: se conserva el feedback de opacidad
+     (que comunica estado) y se elimina el desplazamiento/escala/loop
+     (que es lo que genera molestia/mareo). Los spinners de carga quedan
+     exceptuados a proposito -- son la unica senal de "esto esta
+     cargando" que tiene la UI. */
+  .fade-in {
+    animation-name: fadeIn;
+  }
+
+  .spin-in {
+    animation: none;
+  }
+
+  .live-dot.is-live {
+    animation: none;
+  }
+
+  .pressable,
+  .pressable:active {
+    transition: none;
+    transform: none;
+  }
+
+  .line-chart-line {
+    transition-duration: 1ms;
+  }
+
+  .ranked-mini-fill {
+    transition-duration: 1ms;
+  }
+
+  .stat-tile:hover,
+  .login-submit:hover:not(:disabled) {
+    transform: none;
+  }
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
 }
 
 .grid-2 {

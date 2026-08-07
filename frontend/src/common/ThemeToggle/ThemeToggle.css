@@ -8,7 +8,7 @@
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  transition: background 0.15s var(--ease-out), transform 0.15s var(--ease-out);
+  transition: background var(--duration-fast) var(--ease-out), transform var(--duration-fast) var(--ease-out);
 }
 
 .theme-toggle:hover {
@@ -16,9 +16,9 @@
 }
 
 .theme-toggle:active {
-  transform: scale(0.92);
+  transform: scale(0.96);
 }
 
 .spin-in {
-  animation: popIn 0.25s var(--ease-out);
+  animation: popIn var(--duration-base) var(--ease-out);
 }

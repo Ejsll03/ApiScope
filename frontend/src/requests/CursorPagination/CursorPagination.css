@@ -23,7 +23,7 @@
   padding: 7px 14px;
   font-size: 0.82rem;
   cursor: pointer;
-  transition: background 0.15s var(--ease-out), opacity 0.15s;
+  transition: background var(--duration-fast) var(--ease-out), opacity var(--duration-fast);
 }
 
 .cursor-pagination-buttons button:hover:not(:disabled) {

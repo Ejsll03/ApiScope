@@ -46,7 +46,7 @@ function sortedEntries(record) {
 function RecentErrorRow({ record, onNavigate }) {
   const isManual = record.type === "manual";
   return (
-    <tr className="fade-in" onClick={() => onNavigate("requests", record.id)}>
+    <tr className="fade-in pressable" onClick={() => onNavigate("requests", record.id)}>
       <td>{isManual ? <span className="badge badge-status-critical">ERROR</span> : <StatusBadge statusCode={record.status_code} />}</td>
       <td>{!isManual && <MethodBadge method={record.method} />}</td>
       <td className="recent-error-path" title={isManual ? record.message : record.path}>
@@ -81,7 +81,7 @@ export function DashboardPage({ onNavigate }) {
             <span className={`live-dot${paused ? "" : " is-live"}`} />
           )}
           <span>{lastUpdated ? `Actualizado ${formatRelativeTime(lastUpdated)}` : "Cargando..."}</span>
-          <button className="dashboard-pause" onClick={() => setPaused((p) => !p)}>
+          <button className="dashboard-pause pressable" onClick={() => setPaused((p) => !p)}>
             {paused ? "Reanudar" : "Pausar"}
           </button>
         </div>

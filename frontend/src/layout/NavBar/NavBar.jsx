@@ -25,7 +25,7 @@ export function NavBar({ activePage, onNavigate, onLogout }) {
         {LINKS.map((link) => (
           <button
             key={link.page}
-            className={"navbar-link" + (activePage === link.page ? " is-active" : "")}
+            className={"navbar-link pressable" + (activePage === link.page ? " is-active" : "")}
             onClick={() => onNavigate(link.page)}
           >
             {link.label}
@@ -36,7 +36,7 @@ export function NavBar({ activePage, onNavigate, onLogout }) {
       <div className="navbar-actions">
         <ThemeToggle />
         {onLogout && (
-          <button className="navbar-logout" onClick={onLogout} title="Cerrar sesion">
+          <button className="navbar-logout pressable" onClick={onLogout} title="Cerrar sesion">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
               <path
                 d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9"
